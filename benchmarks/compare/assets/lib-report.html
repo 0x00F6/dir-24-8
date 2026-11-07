@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>IPv4 / IPv6 lookup libraries (1 to 8 threads) - bench-compare-lib</title>
+<link rel="stylesheet" href="report.css">
+<link rel="stylesheet" href="lib-report.css">
+</head>
+<body>
+<div class="viz-root">
+<header class="page-head">
+  <div class="wrap">
+    <h1>IPv4 / IPv6 lookup libraries: Rust, Go and C</h1>
+    <p class="sub" id="subtitle"></p>
+    <div class="runstatus" id="runstatus"></div>
+    <div class="chips" id="env-chips"></div>
+  </div>
+</header>
+<nav class="toc"><div class="wrap">
+  <a href="#sizes">Throughput vs prefixes</a><a href="#memory">Memory vs prefixes</a><a href="#bars">Throughput</a>
+  <a href="#latency">Latency</a><a href="#latency-sizes">Latency vs prefixes</a><a href="#threads">Threads</a>
+  <a href="#table">Results table</a><a href="#validation">Validation</a><a href="#status">Not measured</a>
+  <a href="#libraries">Libraries</a><a href="#corpora">Corpora</a><a href="#method">Methodology</a><a href="#environment">Environment</a>
+</div></nav>
+<div class="filters" id="filters" role="toolbar" aria-label="Filters"><div class="wrap filters-row"></div></div>
+<main class="wrap">
+  <div class="legend" id="legend" aria-label="Libraries (click to show or hide)"></div>
+
+  <section id="sizes">
+    <h2>Throughput vs number of prefixes</h2>
+    <p class="note" id="sizes-note"></p>
+    <div class="card" id="line-throughput"></div>
+  </section>
+
+  <section id="memory">
+    <h2>Memory vs number of prefixes</h2>
+    <p class="note" id="memory-note"></p>
+    <div class="grid2">
+      <div class="card" id="line-memory"></div>
+      <div class="card" id="line-bpp"></div>
+    </div>
+  </section>
+
+  <section id="bars">
+    <h2>Throughput of the selected configuration</h2>
+    <p class="note" id="bars-note"></p>
+    <div class="card" id="bars-card"></div>
+  </section>
+
+  <section id="latency">
+    <h2>Single-thread latency - Candlestick Percentile Rank</h2>
+    <p class="note" id="latency-note"></p>
+    <div class="card" id="candle-card"></div>
+  </section>
+
+  <section id="latency-sizes">
+    <h2>Single-thread latency vs number of prefixes</h2>
+    <div class="grid2">
+      <div class="card" id="line-p50"></div>
+      <div class="card" id="line-p99"></div>
+    </div>
+  </section>
+
+  <section id="threads">
+    <h2>Multithreaded throughput</h2>
+    <p class="note" id="threads-note"></p>
+    <div class="grid2">
+      <div class="card" id="line-threads"></div>
+      <div class="card" id="line-speedup"></div>
+    </div>
+  </section>
+
+  <section id="table">
+    <h2>Results table</h2>
+    <p class="note" id="table-note"></p>
+    <div class="tablebar" id="table-bar"></div>
+    <div class="card table-card" id="results-table"></div>
+  </section>
+
+  <section id="validation">
+    <h2>Validation against the oracle</h2>
+    <p class="note" id="validation-note"></p>
+    <div class="card table-card" id="validation-table"></div>
+    <div class="card table-card" id="edge-table"></div>
+  </section>
+
+  <section id="status">
+    <h2>Not measured, failed or not applicable</h2>
+    <p class="note">Every planned measurement without a value, with its status and reason. A missing value is never drawn as zero: charts leave a gap and tables show the status.</p>
+    <div class="card table-card" id="status-table"></div>
+  </section>
+
+  <section id="libraries">
+    <h2>Libraries and adapters</h2>
+    <p class="note" id="libraries-note"></p>
+    <div class="card table-card" id="libs-table"></div>
+    <div class="card table-card" id="modules-table"></div>
+  </section>
+
+  <section id="corpora">
+    <h2>Corpora and MMDB files</h2>
+    <p class="note" id="corpora-note"></p>
+    <div class="card table-card" id="corpora-table"></div>
+    <div class="card table-card" id="mmdb-table"></div>
+  </section>
+
+  <section id="method">
+    <h2>Methodology</h2>
+    <div class="card prose" id="method-text"></div>
+  </section>
+
+  <section id="environment">
+    <h2>Environment, toolchains and settings</h2>
+    <div class="grid2">
+      <div class="card table-card" id="env-table"></div>
+      <div class="card table-card" id="settings-table"></div>
+    </div>
+  </section>
+</main>
+<footer class="wrap foot" id="footer"></footer>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script src="kit.js"></script>
+<script src="lib-report.js"></script>
+</body>
+</html>

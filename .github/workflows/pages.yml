@@ -1,0 +1,90 @@
+name: Pages
+
+# Builds the GitHub Pages site: a landing page presenting the project, the
+# interactive reports of `make bench-compare` and `make bench-compare-lib`
+# measured on this runner, and the API documentation (site/build.sh).
+
+on:
+  push:
+    branches: [master, main]
+  workflow_dispatch:
+    inputs:
+      compare_sizes:
+        description: "make bench-compare SIZES (entries per table)"
+        default: "1k,10k,100k,1M"
+      lib_profile:
+        description: "make bench-compare-lib BENCH_PROFILE"
+        type: choice
+        options: [standard, smoke, full]
+        default: standard
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# A newer push supersedes a running build (the benchmarks take about an hour).
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  COMPARE_SIZES: ${{ inputs.compare_sizes || '1k,10k,100k,1M' }}
+  LIB_PROFILE: ${{ inputs.lib_profile || 'standard' }}
+
+jobs:
+  build:
+    name: benchmarks, docs and site
+    runs-on: ubuntu-24.04
+    timeout-minutes: 240
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Any go >= 1.21: bench-compare-lib fetches the toolchain pinned in go.mod.
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+
+      - name: Runner
+        run: |
+          lscpu | grep -E 'Model name|^CPU\(s\)|Flags' | cut -c1-200
+          free -h
+          cargo run --quiet --release --features batch-simd --example batch_kernel
+
+      # Thread counts follow the runner's CPUs; MEM_LIMIT_MIB=auto skips the
+      # sizes that would not fit in its memory. Failed or invalid runs are
+      # reported in the page instead of blocking it.
+      - name: make bench-compare
+        run: |
+          threads="1,2,$(nproc)"
+          make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 \
+            || echo "::warning::bench-compare reported failed or invalid runs (see its report)"
+
+      - name: make bench-compare-lib
+        run: |
+          make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=0 \
+            || echo "::warning::bench-compare-lib did not complete (see its report)"
+
+      - name: API documentation
+        run: cargo doc -p dir-24-8 --all-features --no-deps
+
+      - name: Assemble the site
+        run: site/build.sh _site
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+  deploy:
+    name: deploy to GitHub Pages
+    needs: build
+    runs-on: ubuntu-24.04
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -1,0 +1,174 @@
+/* Landing page of the GitHub Pages site. Tokens follow the benchmark
+   reports (benchmarks/compare/assets/report.css): same dark theme. */
+:root {
+  color-scheme: dark;
+  --page: #0d0d0d;
+  --surface-1: #1a1a19;
+  --surface-2: #232321;
+  --text-primary: #f0efec;
+  --text-secondary: #c3c2b7;
+  --text-muted: #898781;
+  --border: rgba(255, 255, 255, 0.10);
+  --accent: #3987e5;
+  --accent-strong: #5a9ff0;
+  /* Filled buttons: white text needs 4.5:1 (5.31:1, 6.8:1 on hover). */
+  --button-primary: #2a6bbf;
+  --button-primary-hover: #1f5aa8;
+  --good: #0ca30c;
+  --warning: #fab219;
+  --critical: #d03b3b;
+  --warn-wash: rgba(250, 178, 25, 0.08);
+  --font: system-ui, -apple-system, "Segoe UI", sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", "JetBrains Mono", Menlo, Consolas, monospace;
+  --radius: 10px;
+  --radius-sm: 6px;
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 24px;
+  --space-6: 32px;
+  --space-7: 48px;
+  --space-8: 72px;
+  --measure: 1080px;
+  --text-on-accent: #ffffff;
+  --fs-root: 16px;
+  --rule: 1px;
+  --focus-ring: 2px;
+  --underline-offset: 3px;
+  --code-radius: 4px;
+  --code-pad-x: 5px;
+  --warning-bar: 4px;
+  --logo-max: 640px;
+  --control-height: 40px;
+  --card-min: 260px;
+  --column-min: 320px;
+}
+
+* { box-sizing: border-box; }
+html { scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background: var(--page);
+  color: var(--text-primary);
+  font-family: var(--font);
+  font-size: var(--fs-root);
+  line-height: 1.6;
+}
+a { color: var(--accent-strong); text-underline-offset: var(--underline-offset); }
+a:hover { color: var(--text-primary); }
+a:focus-visible, .btn:focus-visible, summary:focus-visible {
+  outline: var(--focus-ring) solid var(--accent);
+  outline-offset: var(--focus-ring);
+}
+code, pre { font-family: var(--mono); font-size: 0.875em; }
+:not(pre) > code {
+  background: var(--surface-2);
+  border-radius: var(--code-radius);
+  padding: var(--rule) var(--code-pad-x);
+}
+
+.wrap { max-width: var(--measure); margin: 0 auto; padding: 0 var(--space-5); }
+
+/* Hero */
+.hero { padding: var(--space-7) 0 var(--space-6); text-align: center; border-bottom: 1px solid var(--border); }
+.hero .logo { width: min(var(--logo-max), 100%); height: auto; }
+.tagline { margin: var(--space-5) auto 0; max-width: 46rem; font-size: 1.25rem; color: var(--text-secondary); }
+.tagline strong { color: var(--text-primary); }
+.actions { display: flex; flex-wrap: wrap; gap: var(--space-3); justify-content: center; margin-top: var(--space-5); }
+.btn {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--control-height);
+  padding: 0 var(--space-4);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  background: var(--surface-1);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 0.95rem;
+  text-decoration: none;
+}
+.btn:hover { background: var(--surface-2); color: var(--text-primary); }
+.btn.primary { background: var(--button-primary); border-color: var(--button-primary); color: var(--text-on-accent); }
+.btn.primary:hover { background: var(--button-primary-hover); border-color: var(--button-primary-hover); color: var(--text-on-accent); }
+
+/* Sections */
+section { padding: var(--space-7) 0; border-bottom: 1px solid var(--border); }
+section:last-of-type { border-bottom: 0; }
+h2 { margin: 0 0 var(--space-2); font-size: 1.6rem; line-height: 1.25; }
+.lead { margin: 0 0 var(--space-5); color: var(--text-secondary); max-width: 46rem; }
+h3 { margin: 0 0 var(--space-2); font-size: 1.05rem; }
+
+.grid { display: grid; gap: var(--space-4); grid-template-columns: repeat(auto-fit, minmax(var(--card-min), 1fr)); }
+.card {
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-5);
+}
+.card p { margin: 0; color: var(--text-secondary); }
+
+.two { display: grid; gap: var(--space-5); grid-template-columns: repeat(auto-fit, minmax(var(--column-min), 1fr)); align-items: start; }
+pre {
+  margin: 0;
+  overflow-x: auto;
+  background: var(--surface-1);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: var(--space-4);
+  line-height: 1.5;
+}
+.label { margin: 0 0 var(--space-2); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; }
+
+ul.points { margin: 0; padding-left: 1.2rem; color: var(--text-secondary); }
+ul.points li + li { margin-top: var(--space-2); }
+ul.points strong { color: var(--text-primary); }
+
+.warning {
+  margin-top: var(--space-5);
+  border: 1px solid rgba(250, 178, 25, 0.35);
+  border-left: var(--warning-bar) solid var(--warning);
+  background: var(--warn-wash);
+  border-radius: var(--radius-sm);
+  padding: var(--space-4) var(--space-5);
+}
+.warning h3 { color: var(--warning); }
+.warning ul { margin: 0; padding-left: 1.2rem; color: var(--text-secondary); }
+
+figure { margin: 0; }
+video, .figure-img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-1);
+}
+figcaption { margin-top: var(--space-2); color: var(--text-muted); font-size: 0.9rem; }
+
+/* Benchmark report cards */
+.report { display: flex; flex-direction: column; gap: var(--space-4); }
+.report .desc { color: var(--text-secondary); }
+.meta { display: grid; grid-template-columns: max-content 1fr; gap: var(--space-1) var(--space-4); margin: 0; font-size: 0.92rem; }
+.meta dt { color: var(--text-muted); }
+.meta dd { margin: 0; color: var(--text-primary); }
+.report .links { display: flex; flex-wrap: wrap; align-items: center; gap: var(--space-4); margin-top: auto; }
+.status { font-weight: 600; }
+.status.ok { color: var(--good); }
+.status.warn { color: var(--warning); }
+.status.bad { color: var(--critical); }
+.empty { color: var(--text-muted); }
+.note { margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem; max-width: 52rem; }
+
+footer { padding: var(--space-6) 0 var(--space-7); color: var(--text-muted); font-size: 0.9rem; border-top: 1px solid var(--border); }
+footer p { margin: 0; }
+
+@media (max-width: 560px) {
+  .hero { padding-top: var(--space-6); }
+  .tagline { font-size: 1.1rem; }
+  section { padding: var(--space-6) 0; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+}

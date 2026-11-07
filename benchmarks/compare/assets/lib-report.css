@@ -1,0 +1,18 @@
+/* bench-compare-lib additions to report.css: they only use its tokens. */
+.runstatus { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-6); margin: 0 0 var(--sp-9); color: var(--text-secondary); font-size: var(--fs-base); }
+.badge-st { display: inline-flex; align-items: center; gap: var(--sp-4); padding: var(--sp-2) var(--sp-8); border-radius: var(--r-pill); border: 1px solid var(--axis); background: var(--surface-1); color: var(--text-primary); font-weight: 600; }
+.badge-st i { display: inline-block; width: var(--dot); height: var(--dot); border-radius: 50%; }
+.badge-st.complete i { background: var(--good); }
+.badge-st.partial i { background: var(--warning); }
+.badge-st.failed i { background: var(--critical); }
+.fixed { color: var(--text-muted); font-size: var(--fs-sm); }
+.fixed b { color: var(--text-secondary); font-weight: 600; }
+.tablebar { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-8); margin: 0 0 var(--sp-6); color: var(--text-secondary); font-size: var(--fs-sm); }
+.btn { background: var(--surface-1); color: var(--text-primary); border: 1px solid var(--axis); border-radius: var(--r-lg); padding: var(--sp-3) var(--sp-9); font-family: var(--font); font-size: var(--fs-base); cursor: pointer; }
+.btn:hover { background: var(--surface-2); }
+.btn:focus-visible { outline: var(--rule) solid var(--accent); outline-offset: 1px; }
+.tag { display: inline-block; margin-left: var(--sp-4); padding: 0 var(--sp-4); border: 1px solid var(--axis); border-radius: var(--r-sm); color: var(--text-secondary); font-size: var(--fs-xs); }
+.cell-ok { color: var(--text-secondary); }
+.cell-bad { color: var(--text-primary); font-weight: 600; }
+.anatomy svg text { fill: var(--text-secondary); }
+.placeholder { color: var(--text-secondary); padding: var(--sp-9) 0; }

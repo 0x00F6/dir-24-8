@@ -1,0 +1,43 @@
+[package]
+name = "dir-24-8-compare"
+version = "0.1.0"
+edition = "2024"
+# roaring 0.12 declares Rust 1.90 (the library itself stays at 1.89).
+rust-version = "1.90"
+publish = false
+description = "Reproducible comparison of dir-24-8 against other LPM / membership structures (latency, throughput, memory, threads)"
+
+[[bin]]
+name = "bench-compare"
+path = "src/main.rs"
+
+[[bin]]
+name = "bench-compare-lib"
+path = "src/bin/bench-compare-lib.rs"
+
+[features]
+default = ["batch-simd"]
+# dir-24-8 batches through the CPU's SIMD kernel (entry `dir-24-8`). The
+# Makefile also builds this crate without it, as `bench-compare-scalar`,
+# which measures the `dir-24-8[scalar]` entry (scalar batch kernel).
+batch-simd = ["dir-24-8/batch-simd"]
+
+[dependencies]
+dir-24-8 = { path = "../.." }
+rustc-hash = "2"
+roaring = "0.12"
+prefix-trie = "0.10"
+ip_network_table-deps-treebitmap = "0.5"
+ip_network_table = "0.2"
+ip_network = "0.4"
+iptrie = "0.11"
+iprange = "0.6"
+patricia_tree = "0.10"
+radix_trie = "0.3"
+rangemap = "1.8"
+ipnet = "2.12"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.170"

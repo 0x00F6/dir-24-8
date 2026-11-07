@@ -1,0 +1,87 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_TEST_THREADS: "4"
+
+jobs:
+  lint:
+    name: fmt + clippy + docs (x86-64)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - run: make fmt-check
+      - run: make lint
+      - run: make doc
+
+  test-x86:
+    name: tests (x86-64, scalar batches + batch-simd with AVX2 / AVX-512 when the runner has it)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Batch kernel on this runner
+        run: cargo run --quiet --release --features batch-simd --example batch_kernel
+      - run: make test
+      - run: make test-scalar
+      - run: make examples
+
+  test-aarch64:
+    name: tests (AArch64, scalar batches + batch-simd with native NEON)
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Batch kernel on this runner
+        run: cargo run --quiet --release --features batch-simd --example batch_kernel
+      - run: make test
+      - run: make examples
+
+  msrv:
+    name: MSRV (1.89)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89
+      - run: cargo build -p dir-24-8 --lib --all-features
+      - run: cargo test -p dir-24-8-derive
+      - run: cargo build -p dir-24-8 --lib --no-default-features
+
+  bench-smoke:
+    name: benchmarks compile and the comparison runs (smoke)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - run: cargo bench -p dir-24-8 --all-features --no-run
+      - name: Snapshot benchmark smoke run (tiny sizes; not a measurement)
+        run: make bench BENCHES=snapshot SNAPSHOT_SIZES=1k SNAPSHOT_REPS=1 SNAPSHOT_PROFILES=6
+      - name: Comparison smoke run (tiny matrix; not a performance measurement)
+        run: >
+          make bench-compare SIZES=1k,10k THREADS=1,2 WARMUP_MS=2 WINDOW_MS=2 REPS=2
+          LAT_SAMPLES=2000 LAT_BATCHES=200 OUT=/tmp/reports
+      - name: Report regeneration without measuring
+        run: make bench-compare OUT=/tmp/reports REPORT_ONLY=1
+
+  bench-compare-lib-smoke:
+    name: library comparison runs end to end (smoke; not a performance measurement)
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      # Any go >= 1.21: it fetches the toolchain pinned in go.mod (go1.27.3).
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+          cache: false
+      - run: make bench-compare-lib BENCH_PROFILE=smoke BENCH_OUT=/tmp/reports-lib
+      - name: The smoke comparison is complete (every library validated and measured)
+        run: |
+          grep -q '"status": "complete"' /tmp/reports-lib/bench-compare-lib.json

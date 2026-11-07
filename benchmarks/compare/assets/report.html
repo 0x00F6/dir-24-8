@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dir-24-8 - LPM structure comparison</title>
+<link rel="stylesheet" href="report.css">
+</head>
+<body>
+<div class="viz-root">
+<header class="page-head">
+  <div class="wrap">
+    <h1>dir-24-8 - IPv4 / IPv6 lookup structure comparison</h1>
+    <p class="sub" id="subtitle"></p>
+    <div class="chips" id="env-chips"></div>
+    <div class="warn" id="partial" hidden>Partial results: the run was interrupted or is still in progress.</div>
+  </div>
+</header>
+<nav class="toc"><div class="wrap">
+  <a href="#overview">Overview</a><a href="#latency">Latency</a><a href="#throughput">Throughput</a>
+  <a href="#scaling">Scaling with entries</a><a href="#threads">Threads</a><a href="#batch-section">Batch size</a><a href="#memory">Memory</a>
+  <a href="#results">Results table</a><a href="#status">Not executed</a><a href="#datasets">Datasets</a>
+  <a href="#method">Methodology</a><a href="#environment">Environment</a><a href="#structures">Structures</a>
+</div></nav>
+<div class="filters" id="filters" role="toolbar" aria-label="Filters"><div class="wrap filters-row"></div></div>
+<main class="wrap">
+  <div class="legend" id="legend" aria-label="Structures (click to show or hide)"></div>
+
+  <section id="overview">
+    <h2>Overview</h2>
+    <div class="tiles" id="tiles"></div>
+    <p class="note" id="overview-note"></p>
+  </section>
+
+  <section id="latency">
+    <h2>Latency - Candlestick Percentile Rank</h2>
+    <p class="note" id="latency-note"></p>
+    <div class="card" id="candle-card"></div>
+  </section>
+
+  <section id="throughput">
+    <h2>Throughput</h2>
+    <p class="note">Aggregate addresses per second over all worker threads (median of the timed repetitions; the whisker spans the slowest and fastest repetition). Higher is better.</p>
+    <div class="card" id="bars-card"></div>
+  </section>
+
+  <section id="scaling">
+    <h2>Scaling with the number of entries</h2>
+    <p class="note" id="scaling-note"></p>
+    <div class="grid2">
+      <div class="card" id="line-throughput"></div>
+      <div class="card" id="line-build"></div>
+    </div>
+    <div class="grid3">
+      <div class="card" id="line-p50"></div>
+      <div class="card" id="line-p95"></div>
+      <div class="card" id="line-p99"></div>
+    </div>
+    <div class="grid2">
+      <div class="card" id="line-memory"></div>
+      <div class="card" id="line-bpe"></div>
+    </div>
+  </section>
+
+  <section id="threads">
+    <h2>Throughput with 1, 4 and 8 threads</h2>
+    <p class="note" id="threads-note"></p>
+    <div class="grid2">
+      <div class="card" id="line-threads"></div>
+      <div class="card" id="speedup-card"></div>
+    </div>
+  </section>
+
+  <section id="batch-section">
+    <h2>Batch size: SIMD versus scalar batches</h2>
+    <p class="note" id="batch-note"></p>
+    <div class="grid2">
+      <div class="card" id="line-batch"></div>
+      <div class="card" id="batch-speedup-card"></div>
+    </div>
+  </section>
+
+  <section id="memory">
+    <h2>Memory</h2>
+    <p class="note" id="memory-note"></p>
+    <div class="card table-card" id="memory-table"></div>
+  </section>
+
+  <section id="results">
+    <h2>Results table</h2>
+    <p class="note" id="results-note"></p>
+    <div class="card table-card" id="results-table"></div>
+  </section>
+
+  <section id="status">
+    <h2>Not executed or not comparable</h2>
+    <p class="note">Every configuration that has no measurement, with the reason. Unavailable values are never drawn as zero: charts leave a gap and tables show the status.</p>
+    <div class="card table-card" id="status-table"></div>
+  </section>
+
+  <section id="datasets">
+    <h2>Datasets</h2>
+    <p class="note" id="datasets-note"></p>
+    <div class="card table-card" id="datasets-table"></div>
+  </section>
+
+  <section id="method">
+    <h2>Methodology</h2>
+    <div class="card prose" id="method-text"></div>
+  </section>
+
+  <section id="environment">
+    <h2>Environment and settings</h2>
+    <div class="grid2">
+      <div class="card table-card" id="env-table"></div>
+      <div class="card table-card" id="settings-table"></div>
+    </div>
+  </section>
+
+  <section id="structures">
+    <h2>Structures</h2>
+    <div class="card table-card" id="catalog-table"></div>
+  </section>
+</main>
+<footer class="wrap foot" id="footer"></footer>
+<div class="tooltip" id="tooltip" role="tooltip" hidden></div>
+</div>
+<script id="data" type="application/json">__DATA__</script>
+<script src="kit.js"></script>
+<script src="report.js"></script>
+</body>
+</html>

@@ -1,0 +1,21 @@
+[package]
+name = "dir-24-8-derive"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.89"
+description = "#[derive(DeepMerge)] for the dir-24-8 longest-prefix-match tables"
+license = "MIT OR Apache-2.0"
+readme = "README.md"
+keywords = ["derive", "merge", "lpm", "routing", "cidr"]
+categories = ["data-structures", "network-programming"]
+
+[lib]
+proc-macro = true
+
+[dependencies]
+proc-macro2 = "1.0.95"
+quote = "1.0.40"
+syn = { version = "2.0.104", default-features = false, features = ["derive", "parsing", "printing", "proc-macro", "clone-impls"] }
+
+[dev-dependencies]
+dir-24-8 = { path = "..", features = ["derive"] }

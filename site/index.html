@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>dir-24-8: fast IPv4 and IPv6 CIDR lookups in Rust</title>
+<meta name="description" content="Longest-prefix-match tables for IPv4 (DIR-24-8) and IPv6 (24/8 multi-level trie) in Rust: zero-copy lookups and optional AVX-512, AVX2 and NEON batch lookups. Benchmark reports included.">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<header class="hero">
+  <div class="wrap">
+    <img class="logo" src="assets/logo.png" alt="dir-24-8" width="2000" height="700">
+    <p class="tagline"><strong>Fast IPv4 and IPv6 CIDR lookups in Rust</strong>, zero-copy, with optional AVX-512 / AVX2 / NEON batch lookups.</p>
+    <nav class="actions" aria-label="Main links">
+      <a class="btn primary" href="#benchmarks">Benchmark reports</a>
+      <a class="btn" href="${API_HREF}">API documentation</a>
+      <a class="btn" href="${SITE_REPO_URL}">Source on GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main>
+  <section id="features" aria-labelledby="features-title">
+    <div class="wrap">
+      <h2 id="features-title">What it is</h2>
+      <p class="lead">A longest-prefix-match table for routing, firewall and geolocation data: insert CIDRs with an optional payload, then look addresses up in a few memory reads.</p>
+      <div class="grid">
+        <article class="card"><h3>IPv4: DIR-24-8</h3><p>A 2<sup>24</sup>-cell root plus 256-cell groups: one or two memory reads per lookup, <code>/0</code> to <code>/32</code>.</p></article>
+        <article class="card"><h3>IPv6: 24/8 trie</h3><p>The FIB6 / DPDK layout: a 2<sup>24</sup>-cell root, then one read per level, <code>/0</code> to <code>/128</code>.</p></article>
+        <article class="card"><h3>Zero-copy</h3><p>Lookups borrow the stored payload: no allocation, no clone, no lock, no <code>T: Clone</code> bound.</p></article>
+        <article class="card"><h3>SIMD batches</h3><p>With <code>batch-simd</code>, batches run the AVX-512, AVX2 or NEON kernel detected at runtime.</p></article>
+        <article class="card"><h3>Insert modes</h3><p><code>Replace</code> a payload or deep <code>Merge</code> it, with <code>#[derive(DeepMerge)]</code>, a closure or serde.</p></article>
+        <article class="card"><h3>Snapshots</h3><p>Save and load tables as compressed XZ snapshots, streamed, with validated input and limits.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="start" aria-labelledby="start-title">
+    <div class="wrap">
+      <h2 id="start-title">Getting started</h2>
+      <p class="lead">Rust 1.89 or later. No feature is enabled by default: the default build uses portable scalar kernels.</p>
+      <div class="two">
+        <div>
+          <p class="label">Cargo.toml</p>
+<pre><code>[dependencies]
+dir-24-8 = "0.1"
+
+# With SIMD batch lookups:
+# dir-24-8 = { version = "0.1", features = ["batch-simd"] }</code></pre>
+        </div>
+        <div>
+          <p class="label">main.rs</p>
+<pre><code>use dir_24_8::{IpNet, IpTable, Replace};
+
+let corp: IpNet = "10.0.0.0/8".parse()?;
+let lab: IpNet = "10.1.0.0/16".parse()?;
+
+let mut table: IpTable&lt;&amp;str&gt; = IpTable::new();
+table.insert(corp, Some("corp"), Replace)?;
+table.insert(lab, None, Replace)?; // no payload
+
+let m = table.lookup("10.2.3.4".parse()?).unwrap();
+assert_eq!(m.prefix, corp);
+assert_eq!(m.data, Some(&amp;"corp")); // borrowed</code></pre>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" aria-labelledby="how-title">
+    <div class="wrap">
+      <h2 id="how-title">How it works</h2>
+      <p class="lead">Every cell holds the longest route covering its addresses, so a lookup never backtracks.</p>
+      <div class="two">
+        <ul class="points">
+          <li><strong>Cells</strong>: a <code>u32</code> is empty, a route slot, or a group whose sign bit is the flag.</li>
+          <li><strong>Folding</strong>: a group whose 256 cells become identical is folded back and reused.</li>
+          <li><strong>Batches</strong>: root reads of a whole block first, slot prefetch one chunk ahead, IPv6 lanes in lock step.</li>
+          <li><strong>Single lookups</strong>: always scalar, the fastest for one dependent chain of reads.</li>
+          <li><strong>Safety</strong>: gather indices are clamped; every <code>unsafe</code> block is justified.</li>
+        </ul>
+        <figure>
+          <video controls preload="none" poster="assets/dir_24_8_lookup_cpu.png" width="1920" height="1080">
+            <source src="assets/dir_24_8_lookup_cpu.mp4" type="video/mp4">
+            <a href="assets/dir_24_8_lookup_cpu.mp4">Download the video (MP4)</a>
+          </video>
+          <figcaption>How an IPv4 lookup works, down to the CPU caches (5 min).</figcaption>
+        </figure>
+      </div>
+      <div class="warning" role="note">
+        <h3>This structure needs a lot of RAM</h3>
+        <ul>
+          <li>Each family maps a 64 MiB root on its first insertion, even for one route.</li>
+          <li>About 160 B per IPv4 prefix and 1.7 KiB per IPv6 prefix at 1M prefixes.</li>
+          <li>Cap tables with <code>Config::max_routes</code> and <code>max_ipv6_groups</code>.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="benchmarks" aria-labelledby="benchmarks-title">
+    <div class="wrap">
+      <h2 id="benchmarks-title">Benchmark reports</h2>
+      <p class="lead">Interactive reports of this build: latency percentiles, throughput, thread scaling and memory. Every structure is validated against an oracle before it is timed.</p>
+      <div class="two">
+        ${CARD_COMPARE}
+        ${CARD_LIB}
+      </div>
+      <p class="note">${BENCH_NOTE}</p>
+    </div>
+  </section>
+
+  <section id="profile" aria-labelledby="profile-title">
+    <div class="wrap">
+      <h2 id="profile-title">Where the time goes</h2>
+      <p class="lead">Flame graph of every public lookup method, IPv4 and IPv6 (<code>make flamegraph</code>).</p>
+      <figure>
+        <a href="assets/lookup-flamegraph.svg"><img class="figure-img" src="assets/lookup-flamegraph.svg" alt="Flame graph of every IPv4 and IPv6 lookup method" width="1200" height="326" loading="lazy"></a>
+        <figcaption>Open the image for the interactive flame graph (zoom, search).</figcaption>
+      </figure>
+    </div>
+  </section>
+</main>
+
+<footer>
+  <div class="wrap">
+    <p>Built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
+  </div>
+</footer>
+</body>
+</html>

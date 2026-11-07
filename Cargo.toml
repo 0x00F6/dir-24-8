@@ -1,0 +1,102 @@
+[package]
+name = "dir-24-8"
+version = "0.1.0"
+edition = "2024"
+# AVX-512 intrinsics and target features were stabilized in Rust 1.89.
+rust-version = "1.89"
+description = "Longest-prefix-match tables for IPv4 (DIR-24-8) and IPv6 (24/8 multi-level trie) with optional AVX-512, AVX2 and NEON batch lookups and borrowed results"
+license = "MIT OR Apache-2.0"
+# crates.io page; README.md is the repository page (both are doctested).
+readme = "README.crates.md"
+keywords = ["lpm", "routing", "fib", "simd", "cidr"]
+categories = ["data-structures", "network-programming"]
+exclude = [".idea/*", "benchmarks/*", ".github/*", "docs/images/social-preview.png", "docs/videos/*", "scripts/*", "site/*", "target/*"]
+
+[package.metadata.docs.rs]
+all-features = true
+rustdoc-args = ["--cfg", "docsrs"]
+
+[lib]
+name = "dir_24_8"
+
+[features]
+default = []
+# SIMD batch kernels (AVX-512 or AVX2 on x86-64, NEON on AArch64), chosen at
+# runtime from the CPU. Only batch lookups use them; without this feature,
+# and for single lookups in every build, the scalar kernels run.
+batch-simd = []
+# `#[derive(DeepMerge)]` (re-exported from `dir-24-8-derive`).
+derive = ["dep:dir-24-8-derive"]
+# Serde-based deep merge (`SerdeMerge` insert mode, `DeepMerge for serde_json::Value`).
+serde = ["dep:serde", "dep:serde_json"]
+# Compressed snapshots (`IpTable::snapshot`, `IpTable::load`, ...): XZ/LZMA2
+# through liblzma, payloads encoded as CBOR through serde.
+snapshot = ["dep:serde", "dep:ciborium", "dep:liblzma", "dep:liblzma-sys"]
+
+[dependencies]
+ciborium = { version = "0.2.2", optional = true }
+dir-24-8-derive = { version = "0.1.0", path = "derive", optional = true }
+ipnet = "2.12"
+# `parallel`: multithreaded XZ encoder/decoder (`SnapshotOptions::threads`).
+liblzma = { version = "0.4.9", optional = true, default-features = false, features = ["parallel"] }
+# Encoder memory estimates (`lzma_raw_encoder_memusage`), not wrapped by `liblzma`.
+liblzma-sys = { version = "0.4.9", optional = true, default-features = false }
+serde = { version = "1.0.228", optional = true }
+serde_json = { version = "1.0.145", optional = true }
+
+[target.'cfg(target_os = "linux")'.dependencies]
+# mmap/madvise for lazily zeroed, huge-page backed tables.
+libc = "0.2.170"
+
+[dev-dependencies]
+criterion = { version = "0.8", default-features = false, features = ["cargo_bench_support"] }
+proptest = { version = "1.11", default-features = false, features = ["std"] }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.145"
+
+[[bench]]
+name = "lookup"
+harness = false
+
+[[bench]]
+name = "update"
+harness = false
+
+[[bench]]
+name = "snapshot"
+harness = false
+required-features = ["snapshot"]
+
+[[test]]
+name = "snapshot"
+required-features = ["snapshot"]
+
+[[example]]
+name = "serde_merge"
+required-features = ["serde"]
+
+[[example]]
+name = "typed_deep_merge"
+required-features = ["derive"]
+
+[[example]]
+name = "snapshot"
+required-features = ["snapshot"]
+
+[profile.release]
+codegen-units = 1
+lto = "thin"
+
+[profile.bench]
+codegen-units = 1
+lto = "thin"
+debug = "line-tables-only"
+
+[workspace]
+members = [".", "derive", "benchmarks/compare"]
+resolver = "3"
+
+# Tests build 64 MiB tables and walk millions of cells on short-prefix
+# updates: optimize them while keeping debug assertions and overflow checks.
+[profile.test]
+opt-level = 2
