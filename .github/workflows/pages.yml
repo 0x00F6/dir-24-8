@@ -2,8 +2,7 @@ name: Pages
 
 # Builds the GitHub Pages site: a landing page presenting the project, the
 # interactive reports of `make bench-compare` and `make bench-compare-lib`
-# measured on this runner, their charts and the API documentation
-# (site/build.sh). The same run refreshes the benchmark section of README.md
+# measured on this runner and the API documentation (site/build.sh). The same run refreshes the benchmark section of README.md
 # (charts, summary, detailed results) and commits it to master
 # (site/publish-results.sh).
 #

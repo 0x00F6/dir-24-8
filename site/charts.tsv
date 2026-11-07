@@ -1,4 +1,4 @@
-# Benchmark images shown by README.md and the GitHub Pages site, in order:
+# Benchmark images shown by README.md, in order:
 # file (benchmarks/charts/<file>.png), title, alt text, width. Tab separated.
 # site/charts.mjs captures them; a file missing from a run is skipped.
 candlestick-ipv4-lookup	Candlestick Percentile Rank — IPv4 Lookups	Candlestick percentile rank of IPv4 single lookups	100%

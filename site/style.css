@@ -11,6 +11,14 @@
   --border: rgba(255, 255, 255, 0.10);
   --accent: #3987e5;
   --accent-strong: #5a9ff0;
+  /* Syntax colours (site/highlight.js), 5.7:1 to 11.3:1 on --surface-1. */
+  --code-keyword: #ff7b72;
+  --code-string: #a5d6ff;
+  --code-number: #79c0ff;
+  --code-comment: #8b949e;
+  --code-type: #ffa657;
+  --code-function: #d2a8ff;
+  --code-table: #7ee787;
   /* Filled buttons: white text needs 4.5:1 (5.31:1, 6.8:1 on hover). */
   --button-primary: #2a6bbf;
   --button-primary-hover: #1f5aa8;
@@ -119,6 +127,15 @@ pre {
   padding: var(--space-4);
   line-height: 1.5;
 }
+.tok-keyword { color: var(--code-keyword); }
+.tok-string { color: var(--code-string); }
+.tok-number { color: var(--code-number); }
+.tok-comment { color: var(--code-comment); font-style: italic; }
+.tok-type { color: var(--code-type); }
+.tok-function, .tok-macro { color: var(--code-function); }
+.tok-attr { color: var(--code-comment); }
+.tok-table { color: var(--code-table); font-weight: 600; }
+.tok-key { color: var(--code-number); }
 .label { margin: 0 0 var(--space-2); color: var(--text-muted); font-size: 0.85rem; font-weight: 600; letter-spacing: 0.02em; }
 
 ul.points { margin: 0; padding-left: 1.2rem; color: var(--text-secondary); }
@@ -159,9 +176,6 @@ figcaption { margin-top: var(--space-2); color: var(--text-muted); font-size: 0.
 .status.warn { color: var(--warning); }
 .status.bad { color: var(--critical); }
 .empty { color: var(--text-muted); }
-.charts-title { margin-top: var(--space-6); }
-.charts { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
-.chart figcaption { text-align: center; }
 .note { margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem; max-width: 52rem; }
 
 footer { padding: var(--space-6) 0 var(--space-7); color: var(--text-muted); font-size: 0.9rem; border-top: 1px solid var(--border); }

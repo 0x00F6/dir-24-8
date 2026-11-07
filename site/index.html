@@ -43,7 +43,7 @@
       <div class="two">
         <div>
           <p class="label">Cargo.toml</p>
-<pre><code>[dependencies]
+<pre><code class="language-toml">[dependencies]
 dir-24-8 = "0.1"
 
 # With SIMD batch lookups:
@@ -51,7 +51,7 @@ dir-24-8 = "0.1"
         </div>
         <div>
           <p class="label">main.rs</p>
-<pre><code>use dir_24_8::{IpNet, IpTable, Replace};
+<pre><code class="language-rust">use dir_24_8::{IpNet, IpTable, Replace};
 
 let corp: IpNet = "10.0.0.0/8".parse()?;
 let lab: IpNet = "10.1.0.0/16".parse()?;
@@ -108,10 +108,6 @@ assert_eq!(m.data, Some(&amp;"corp")); // borrowed</code></pre>
         ${CARD_LIB}
       </div>
       <p class="note">${BENCH_NOTE}</p>
-      <h3 class="charts-title">Charts</h3>
-      <div class="charts">
-${CHARTS}
-      </div>
     </div>
   </section>
 
@@ -132,5 +128,6 @@ ${CHARTS}
     <p><a href="${SITE_REPO_URL}/releases/tag/${SITE_VERSION}">${SITE_VERSION}</a>, built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
   </div>
 </footer>
+<script src="highlight.js" defer></script>
 </body>
 </html>
