@@ -102,12 +102,16 @@ assert_eq!(m.data, Some(&amp;"corp")); // borrowed</code></pre>
   <section id="benchmarks" aria-labelledby="benchmarks-title">
     <div class="wrap">
       <h2 id="benchmarks-title">Benchmark reports</h2>
-      <p class="lead">Interactive reports of this build: latency percentiles, throughput, thread scaling and memory. Every structure is validated against an oracle before it is timed.</p>
+      <p class="lead">Interactive reports of release ${SITE_VERSION}: latency percentiles, throughput, thread scaling and memory. Every structure is validated against an oracle before it is timed.</p>
       <div class="two">
         ${CARD_COMPARE}
         ${CARD_LIB}
       </div>
       <p class="note">${BENCH_NOTE}</p>
+      <h3 class="charts-title">Charts</h3>
+      <div class="charts">
+${CHARTS}
+      </div>
     </div>
   </section>
 
@@ -125,7 +129,7 @@ assert_eq!(m.data, Some(&amp;"corp")); // borrowed</code></pre>
 
 <footer>
   <div class="wrap">
-    <p>Built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
+    <p><a href="${SITE_REPO_URL}/releases/tag/${SITE_VERSION}">${SITE_VERSION}</a>, built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
   </div>
 </footer>
 </body>

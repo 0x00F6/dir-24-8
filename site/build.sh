@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
-# jq programs and the envsubst variable list are single-quoted on purpose.
-# shellcheck disable=SC2016
+# jq programs and the envsubst variable list are single-quoted on purpose;
+# the HTML fragments (CHARTS) hold literal quotes.
+# shellcheck disable=SC2016,SC2089,SC2090
 # Assembles the GitHub Pages site (.github/workflows/pages.yml): the landing
 # page (site/index.html), the reports of `make bench-compare` and
 # `make bench-compare-lib`, the API documentation (target/doc, when built)
@@ -102,10 +103,29 @@ CARD_LIB=$(card \
 ')
 
 if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-  BENCH_NOTE='Measured by the GitHub Actions run that built this page, on a shared virtual machine: compare structures within one report rather than absolute numbers across machines. The README shows measurements from dedicated hardware.'
+  BENCH_NOTE="Measured for release $GITHUB_REF_NAME by the GitHub Actions run that built this page, on a shared virtual machine: compare structures within one report rather than absolute numbers across machines. The README shows measurements from dedicated hardware."
 else
   BENCH_NOTE='Measured on the machine shown on each card. Compare structures within one report rather than absolute numbers across machines.'
 fi
+
+# Benchmark charts (site/charts.tsv order), as refreshed by site/charts.sh.
+png_size() { # width and height from the PNG header (IHDR)
+  local b
+  read -r -a b < <(od -An -tu1 -j16 -N8 "$1")
+  echo "$(( (b[0] << 24) | (b[1] << 16) | (b[2] << 8) | b[3] )) $(( (b[4] << 24) | (b[5] << 16) | (b[6] << 8) | b[7] ))"
+}
+CHARTS=""
+mkdir -p "$out/assets/charts"
+while IFS=$'\t' read -r name title alt _; do
+  [[ -z $name || $name == \#* ]] && continue
+  png=$root/benchmarks/charts/$name.png
+  [[ -f $png ]] || continue
+  cp "$png" "$out/assets/charts/"
+  read -r w h < <(png_size "$png")
+  printf -v figure '<figure class="chart"><a href="assets/charts/%s.png"><img class="figure-img" src="assets/charts/%s.png" alt="%s" width="%s" height="%s" loading="lazy"></a><figcaption>%s</figcaption></figure>\n' \
+    "$name" "$name" "$alt" "$w" "$h" "$title"
+  CHARTS+=$figure
+done < "$root/site/charts.tsv"
 
 if [[ -d "$root/target/doc/dir_24_8" ]]; then
   cp -r "$root/target/doc" "$out/api"
@@ -116,10 +136,16 @@ fi
 
 SITE_COMMIT=${GITHUB_SHA:-$(git -C "$root" rev-parse HEAD 2>/dev/null || echo unknown)}
 SITE_COMMIT_SHORT=${SITE_COMMIT:0:7}
+# Version tag that triggered the build (pages.yml), else the crate version.
+if [[ ${GITHUB_REF_TYPE:-} == tag ]]; then
+  SITE_VERSION=$GITHUB_REF_NAME
+else
+  SITE_VERSION=v$(sed -n 's/^version = "\(.*\)"/\1/p' "$root/Cargo.toml" | head -n 1)
+fi
 SITE_DATE=$(date -u +%Y-%m-%d)
 SITE_REPO_URL=$repo_url
-export CARD_COMPARE CARD_LIB BENCH_NOTE API_HREF SITE_COMMIT SITE_COMMIT_SHORT SITE_DATE SITE_REPO_URL
-envsubst '$CARD_COMPARE $CARD_LIB $BENCH_NOTE $API_HREF $SITE_COMMIT $SITE_COMMIT_SHORT $SITE_DATE $SITE_REPO_URL' \
+export CARD_COMPARE CARD_LIB BENCH_NOTE API_HREF SITE_COMMIT SITE_COMMIT_SHORT SITE_DATE SITE_REPO_URL SITE_VERSION CHARTS
+envsubst '$CARD_COMPARE $CARD_LIB $BENCH_NOTE $API_HREF $SITE_COMMIT $SITE_COMMIT_SHORT $SITE_DATE $SITE_REPO_URL $SITE_VERSION $CHARTS' \
   < "$root/site/index.html" > "$out/index.html"
 
 echo "site assembled in $out:"

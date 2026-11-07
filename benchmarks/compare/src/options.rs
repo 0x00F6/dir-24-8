@@ -62,6 +62,11 @@ pub struct Options {
     pub pin: bool,
     pub out: PathBuf,
     pub cache: PathBuf,
+    /// `BENCH_README` (`README=` in the Makefile): `auto`, `1` or `0`, see
+    /// [`crate::readme::wanted`].
+    pub readme: String,
+    /// The repository `README.md` whose "Detailed results" block is regenerated.
+    pub readme_file: PathBuf,
     pub report_only: Option<PathBuf>,
     pub list: bool,
     /// Internal: measure one structure (JSON `RunCfg`).
@@ -111,6 +116,8 @@ Limits:
 Output:
   --out DIR           reports directory (BENCH_OUT, default benchmarks/reports)
   --cache DIR         dataset cache (BENCH_CACHE, default target/bench-compare/data)
+  --readme MODE       refresh the Detailed results block of README.md: auto (complete runs of the
+                      default selection up to 1M entries or more), 1 or 0 (BENCH_README, default auto)
   --report-only [F]   regenerate the reports from F (default OUT/results.json), no measurement
   --list              print the plan and exit
 ";
@@ -227,6 +234,8 @@ pub fn parse() -> Options {
         timeout_s: num("BENCH_TIMEOUT", 600),
         pin: env("BENCH_PIN").is_none_or(|v| !matches!(v.trim(), "0" | "false" | "no" | "off")),
         out: env("BENCH_OUT").map_or_else(|| root().join("benchmarks/reports"), PathBuf::from),
+        readme: env("BENCH_README").unwrap_or_else(|| "auto".into()),
+        readme_file: root().join("README.md"),
         cache: env("BENCH_CACHE")
             .map_or_else(|| root().join("target/bench-compare/data"), PathBuf::from),
         report_only: None,
@@ -291,6 +300,7 @@ pub fn parse() -> Options {
                 })
             }
             "--list" => o.list = true,
+            "--readme" => o.readme = val(),
             "--child" => o.child = Some(val()),
             "--prepare" => o.prepare = Some(val()),
             "--result" => o.result = Some(PathBuf::from(val())),
@@ -308,6 +318,13 @@ pub fn parse() -> Options {
             PathBuf::from(v)
         }
     });
+    o.readme = o.readme.trim().to_string();
+    if !matches!(o.readme.as_str(), "auto" | "1" | "0") {
+        fail(format!(
+            "--readme / BENCH_README must be auto, 1 or 0, not {:?}",
+            o.readme
+        ));
+    }
     o.sizes = parse_list(&sizes, "size", parse_size);
     o.sizes.sort_unstable();
     o.sizes.dedup();

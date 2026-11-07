@@ -2,50 +2,65 @@ name: Pages
 
 # Builds the GitHub Pages site: a landing page presenting the project, the
 # interactive reports of `make bench-compare` and `make bench-compare-lib`
-# measured on this runner, and the API documentation (site/build.sh).
+# measured on this runner, their charts and the API documentation
+# (site/build.sh). The same run refreshes the benchmark section of README.md
+# (charts, summary, detailed results) and commits it to master
+# (site/publish-results.sh).
+#
+# Runs when a version tag is pushed (`make release VERSION=X.Y.Z` pushes
+# vX.Y.Z; semver pre-releases too) or by hand (Actions > Pages > Run
+# workflow). The github-pages environment must allow the ref: v* tags, and
+# master for manual runs.
 
 on:
   push:
-    branches: [master, main]
+    tags:
+      - "v[0-9]+.[0-9]+.[0-9]+"
+      - "v[0-9]+.[0-9]+.[0-9]+-*"
   workflow_dispatch:
-    inputs:
-      compare_sizes:
-        description: "make bench-compare SIZES (entries per table)"
-        default: "1k,10k,100k,1M"
-      lib_profile:
-        description: "make bench-compare-lib BENCH_PROFILE"
-        type: choice
-        options: [standard, smoke, full]
-        default: standard
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
-# A newer push supersedes a running build (the benchmarks take about an hour).
+# A newer version tag supersedes a running build (the benchmarks take about
+# an hour).
 concurrency:
   group: pages
   cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
-  COMPARE_SIZES: ${{ inputs.compare_sizes || '1k,10k,100k,1M' }}
-  LIB_PROFILE: ${{ inputs.lib_profile || 'standard' }}
+  COMPARE_SIZES: "1k,10k,100k,1M"
+  LIB_PROFILE: standard
 
 jobs:
   build:
     name: benchmarks, docs and site
     runs-on: ubuntu-24.04
     timeout-minutes: 240
+    permissions:
+      contents: write # commits the refreshed README and charts to master
+      pages: read
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
       # Any go >= 1.21: bench-compare-lib fetches the toolchain pinned in go.mod.
       - uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           cache: false
+      # The chart captures drive the runner's Chrome over the DevTools
+      # protocol (global WebSocket: Node 22+) and finish with Pillow.
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Chart tools
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq python3-pil
+          google-chrome --version
 
       - name: Runner
         run: |
@@ -59,13 +74,21 @@ jobs:
       - name: make bench-compare
         run: |
           threads="1,2,$(nproc)"
-          make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 \
+          make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 README=1 \
             || echo "::warning::bench-compare reported failed or invalid runs (see its report)"
 
       - name: make bench-compare-lib
         run: |
-          make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=0 \
+          make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=1 \
             || echo "::warning::bench-compare-lib did not complete (see its report)"
+
+      # README.md now holds the new summary and detailed results (README=1,
+      # BENCH_README=1); the charts are captured from the new reports.
+      - name: Benchmark charts
+        run: site/charts.sh
+
+      - name: Commit the benchmark results to master
+        run: site/publish-results.sh
 
       - name: API documentation
         run: cargo doc -p dir-24-8 --all-features --no-deps
@@ -82,6 +105,9 @@ jobs:
     name: deploy to GitHub Pages
     needs: build
     runs-on: ubuntu-24.04
+    permissions:
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

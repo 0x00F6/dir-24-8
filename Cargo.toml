@@ -6,6 +6,7 @@ edition = "2024"
 rust-version = "1.89"
 description = "Longest-prefix-match tables for IPv4 (DIR-24-8) and IPv6 (24/8 multi-level trie) with optional AVX-512, AVX2 and NEON batch lookups and borrowed results"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/0x00F6/dir-24-8"
 # crates.io page; README.md is the repository page (both are doctested).
 readme = "README.crates.md"
 keywords = ["lpm", "routing", "fib", "simd", "cidr"]

@@ -22,6 +22,7 @@ make bench-compare ENGINES=default,patricia  # default selection + one more
 make bench-compare HIT_RATIO=90% BATCH=64,256 WINDOW_MS=20 REPS=7
 make bench-compare BATCH_SWEEP=8,64,512      # batch sizes of the SIMD-versus-scalar chart (none = off)
 make bench-compare REPORT_ONLY=1             # rebuild report.html/results.csv from results.json
+make bench-compare README=1                  # also rewrite the Detailed results block of README.md (auto: full runs)
 ```
 
 `bench-compare --help` (binary `target/release/bench-compare`) lists every

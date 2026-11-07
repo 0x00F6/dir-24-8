@@ -159,6 +159,9 @@ figcaption { margin-top: var(--space-2); color: var(--text-muted); font-size: 0.
 .status.warn { color: var(--warning); }
 .status.bad { color: var(--critical); }
 .empty { color: var(--text-muted); }
+.charts-title { margin-top: var(--space-6); }
+.charts { display: grid; gap: var(--space-5); margin-top: var(--space-4); }
+.chart figcaption { text-align: center; }
 .note { margin-top: var(--space-4); color: var(--text-muted); font-size: 0.9rem; max-width: 52rem; }
 
 footer { padding: var(--space-6) 0 var(--space-7); color: var(--text-muted); font-size: 0.9rem; border-top: 1px solid var(--border); }

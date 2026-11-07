@@ -32,31 +32,34 @@ pub fn wanted(mode: &str, doc: &Value) -> bool {
 /// Replaces the generated block of `readme`. Returns `Ok(false)` when the
 /// block was already up to date.
 pub fn update(readme: &Path, doc: &Value) -> Result<bool, String> {
-    let text = std::fs::read_to_string(readme)
-        .map_err(|e| format!("cannot read {}: {e}", readme.display()))?;
-    let (Some(a), Some(b)) = (text.find(START), text.find(END)) else {
-        return Err(format!(
-            "{} has no {START} ... {END} block",
-            readme.display()
-        ));
+    replace_block(readme, START, END, &summary(doc)?)
+}
+
+/// Replaces the lines between `start` and `end` (both kept) of the file
+/// `path` with `body` (which ends with a newline). Returns `Ok(false)` when
+/// the file already had this content. Shared by the `bench-compare` and
+/// `bench-compare-lib` README generators.
+pub fn replace_block(path: &Path, start: &str, end: &str, body: &str) -> Result<bool, String> {
+    let text = std::fs::read_to_string(path)
+        .map_err(|e| format!("cannot read {}: {e}", path.display()))?;
+    let (Some(a), Some(b)) = (text.find(start), text.find(end)) else {
+        return Err(format!("{} has no {start} ... {end} block", path.display()));
     };
     if b < a {
-        return Err(format!("{END} precedes {START} in {}", readme.display()));
+        return Err(format!("{end} precedes {start} in {}", path.display()));
     }
     let new = format!(
-        "{}{START}\n{}{END}{}",
+        "{}{start}\n{body}{end}{}",
         &text[..a],
-        summary(doc)?,
-        &text[b + END.len()..]
+        &text[b + end.len()..]
     );
     if new == text {
         return Ok(false);
     }
-    // Written beside the README, then renamed over it.
-    let tmp = readme.with_extension("md.tmp");
+    // Written beside the file, then renamed over it.
+    let tmp = path.with_extension("md.tmp");
     std::fs::write(&tmp, &new).map_err(|e| format!("cannot write {}: {e}", tmp.display()))?;
-    std::fs::rename(&tmp, readme)
-        .map_err(|e| format!("cannot replace {}: {e}", readme.display()))?;
+    std::fs::rename(&tmp, path).map_err(|e| format!("cannot replace {}: {e}", path.display()))?;
     Ok(true)
 }
 

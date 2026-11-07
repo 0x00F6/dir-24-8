@@ -14,6 +14,7 @@ pub mod engines;
 pub mod libcmp;
 pub mod measure;
 pub mod options;
+pub mod readme;
 pub mod registry;
 pub mod report;
 pub mod sys;

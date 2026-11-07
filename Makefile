@@ -33,6 +33,8 @@
 #     PIN=0                do not pin worker threads to cores
 #     OUT=<dir>            reports directory (default benchmarks/reports)
 #     REPORT_ONLY=1        regenerate the reports from OUT/results.json without measuring
+#     README=auto|1|0      refresh the "Detailed results" block of README.md (auto, the default:
+#                          complete runs of the default selection up to 1M entries or more)
 #
 #   make bench-compare-lib  single-thread IPv4/IPv6 lookups of dir-24-8 (default configuration)
 #                           against go-cidranger (libp2p), cidranger (yl2chen),
@@ -57,9 +59,17 @@
 # Release (GitHub):
 #   make release VERSION=X.Y.Z   checks (clean tree on the default branch in sync with origin, crate
 #                                versions = VERSION, unused tag), make ci, packages, tag vX.Y.Z, push,
-#                                gh release create with generated notes and the .crate files
+#                                gh release create with generated notes and the .crate files; the
+#                                pushed tag also rebuilds the GitHub Pages site (pages.yml)
 #     DRY_RUN=1   checks only, print the tag/push/release commands   DRAFT=1   draft release
 #     NOTES=<file> release notes instead of generated ones           CHECKS=0  skip make ci
+#
+# Publication (crates.io):
+#   make publish VERSION=X.Y.Z   checks (clean tree on the default branch in sync with origin, crate
+#                                versions = VERSION, crates.io token), make ci doc-crates, then
+#                                cargo publish of dir-24-8-derive and dir-24-8 (a version already on
+#                                crates.io is skipped; a published version cannot be replaced)
+#     DRY_RUN=1   everything but the upload (cargo publish --dry-run)   CHECKS=0  skip make ci doc-crates
 #
 # Other variables:
 #   TEST_THREADS=<n>     test threads (default 8; every table maps 64 MiB per family)
@@ -121,11 +131,12 @@ COMPARE_ENV = $(call fwd,SIZES,BENCH_SIZES) $(call fwd,FAMILIES,BENCH_FAMILIES) 
               $(call fwd,LAT_BATCHES,BENCH_LAT_BATCHES) $(call fwd,LAT_MAX_MS,BENCH_LAT_MAX_MS) \
               $(call fwd,MEM_LIMIT_MIB,BENCH_MEM_LIMIT_MIB) \
               $(call fwd,BUDGET,BENCH_BUDGET) $(call fwd,TIMEOUT,BENCH_TIMEOUT) $(call fwd,PIN,BENCH_PIN) \
-              $(call fwd,OUT,BENCH_OUT) $(call fwd,REPORT_ONLY,BENCH_REPORT_ONLY)
+              $(call fwd,OUT,BENCH_OUT) $(call fwd,REPORT_ONLY,BENCH_REPORT_ONLY) \
+              $(call fwd,README,BENCH_README)
 
 .PHONY: help check check-aarch64 build build-release fmt fmt-check lint test test-scalar test-simd \
         coverage bench bench-compare bench-compare-lib flamegraph examples doc doc-open doc-crates \
-        release clean ci
+        release publish clean ci
 
 ##@ Help
 help: ## Show this help
@@ -266,6 +277,9 @@ doc-crates: ## crates.io + docs.rs pages: API docs built like docs.rs (nightly),
 release: ## Publish the GitHub release vVERSION (VERSION=X.Y.Z; DRY_RUN=1, DRAFT=1, NOTES=<file>, CHECKS=0)
 	@VERSION='$(VERSION)' DRY_RUN='$(DRY_RUN)' DRAFT='$(DRAFT)' NOTES='$(NOTES)' CHECKS='$(CHECKS)' \
 	  scripts/release.sh
+
+publish: ## Publish dir-24-8-derive and dir-24-8 VERSION to crates.io (VERSION=X.Y.Z; DRY_RUN=1, CHECKS=0)
+	@VERSION='$(VERSION)' DRY_RUN='$(DRY_RUN)' CHECKS='$(CHECKS)' scripts/publish.sh
 
 ##@ Maintenance
 clean: ## Remove build artifacts and cached benchmark datasets (cargo clean; reports are kept)

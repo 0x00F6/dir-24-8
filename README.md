@@ -424,6 +424,7 @@ make bench               # Criterion: single, batch and exist lookups + updates 
 make bench SIMD=0        # the same, built without batch-simd (scalar batches)
 make bench BENCHES=snapshot   # snapshot size, save and load time, memory
 make bench-compare       # Rust LPM/membership structures, 1k-5M entries, 1/4/8 threads -> benchmarks/reports/report.html
+                         # and the detailed results below (README=auto|1|0)
 make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> benchmarks/reports/bench-compare-lib.html
                          # and the summary table below (BENCH_README=auto|1|0)
 ```
@@ -495,10 +496,14 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 
 ### Charts
 
-- Captured from the HTML reports of the runs above.
+- Captured from the HTML reports of the runs above (`site/charts.sh`).
+- The charts, the summary and the detailed results are refreshed for every
+  release by [`.github/workflows/pages.yml`](.github/workflows/pages.yml),
+  which commits them to `master`.
 - `make bench-compare` charts: 1M entries unless noted, random distribution (50 %
   hits), one thread.
 
+<!-- benchmark-charts:start -->
 <p align="center"><strong>Candlestick Percentile Rank — IPv4 Lookups (1M)</strong><br><img src="benchmarks/charts/candlestick-ipv4-lookup.png" alt="Candlestick percentile rank of IPv4 single lookups, 1M entries" width="100%"></p>
 
 <p align="center"><strong>Candlestick Percentile Rank — IPv6 Lookups (1M)</strong><br><img src="benchmarks/charts/candlestick-ipv6-lookup.png" alt="Candlestick percentile rank of IPv6 single lookups, 1M entries" width="100%"></p>
@@ -518,9 +523,11 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 <p align="center"><strong>Go, C and Rust Libraries — IPv6 LPM Lookup Throughput</strong><br><img src="benchmarks/charts/lib-throughput-ipv6.png" alt="IPv6 LPM lookup throughput of the Go, C and Rust libraries" width="100%"></p>
 
 <p align="center"><strong>Go, C and Rust Libraries — IPv4 LPM Latency (1M)</strong><br><img src="benchmarks/charts/lib-candlestick-ipv4.png" alt="Candlestick percentile rank of IPv4 LPM lookups of the Go, C and Rust libraries" width="100%"></p>
+<!-- benchmark-charts:end -->
 
 ### Detailed results
 
+<!-- bench-compare:details:start -->
 - **Run**: `make bench-compare`, matrix of that time: 17 entries, 9 sizes, 306
   runs, 7 047 measurements, 24 min 33 s.
 - **Left out**: one structure of that run is no longer benchmarked.
@@ -575,6 +582,7 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 | `hashmap-lpm(fxhash)` | 0.5 M/s | 0.4 M/s | 0.4 M/s | 4.6 M/s | 4.7 M/s | 2.37 us | 7.59 us | 526 MiB | 🏆 **0.51 s** |
 | `patricia_tree(0.10)` | 0.4 M/s | 0.4 M/s | 0.5 M/s | 4.4 M/s | 3.2 M/s | 995 ns | 7.12 us | 🏆 **323 MiB** | 30.3 s |
 | `radix_trie(0.3)` | 0.3 M/s | 0.3 M/s | 0.4 M/s | 2.7 M/s | 1.8 M/s | 3.14 us | 8.42 us | 2.48 GiB | 22.3 s |
+<!-- bench-compare:details:end -->
 
 See [docs/performance.md](docs/performance.md) for every measurement behind the
 design choices, kept and rejected.
@@ -614,7 +622,8 @@ make flamegraph   # PROFILE_SECONDS=<s> per method, default 1
 - API documentation: [docs.rs/dir-24-8](https://docs.rs/dir-24-8).
 - Project page with the latest benchmark reports and API docs:
   [0x00f6.github.io/dir-24-8](https://0x00f6.github.io/dir-24-8/), rebuilt by
-  [`.github/workflows/pages.yml`](.github/workflows/pages.yml) on every push.
+  [`.github/workflows/pages.yml`](.github/workflows/pages.yml) for every version
+  tag (`make release`).
 - Design and measurements: [docs/architecture.md](docs/architecture.md),
   [docs/performance.md](docs/performance.md).
 - Conventions, invariants and `unsafe` policy: [AGENTS.md](AGENTS.md).
@@ -650,6 +659,7 @@ make examples doc          # examples assert their results; rustdoc with -D warn
 make doc-crates            # crates.io + docs.rs pages: docs.rs-like rustdoc (nightly), README examples and links, packages
 make ci                    # what CI runs
 make release VERSION=X.Y.Z # GitHub release vX.Y.Z (DRY_RUN=1 to rehearse, DRAFT=1 for a draft)
+make publish VERSION=X.Y.Z # crates.io: dir-24-8-derive then dir-24-8 (DRY_RUN=1 to rehearse)
 ```
 
 ### Testing and coverage

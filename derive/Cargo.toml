@@ -5,6 +5,7 @@ edition = "2024"
 rust-version = "1.89"
 description = "#[derive(DeepMerge)] for the dir-24-8 longest-prefix-match tables"
 license = "MIT OR Apache-2.0"
+repository = "https://github.com/0x00F6/dir-24-8"
 readme = "README.md"
 keywords = ["derive", "merge", "lpm", "routing", "cidr"]
 categories = ["data-structures", "network-programming"]

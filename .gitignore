@@ -2,3 +2,4 @@
 **/*.rs.bk
 /benchmarks/reports/*
 !/benchmarks/reports/.gitkeep
+__pycache__/

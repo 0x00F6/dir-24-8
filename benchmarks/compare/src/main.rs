@@ -60,6 +60,7 @@ fn main() {
         for f in files {
             eprintln!("  {}", f.display());
         }
+        refresh_readme(&o, &r);
         return;
     }
     let entries = registry::select(&o.engines);
@@ -141,6 +142,28 @@ fn child(spec: &str, result: &Path) {
     };
     r.process_s = t.elapsed().as_secs_f64();
     std::fs::write(result, serde_json::to_vec(&r).expect("serializable")).expect("result file");
+}
+
+/// Regenerates the "Detailed results" block of `README.md` when
+/// `BENCH_README` allows it; a failure is reported, not fatal.
+fn refresh_readme(o: &Options, r: &report::Results) {
+    let path = &o.readme_file;
+    if !dir_24_8_compare::readme::wanted(&o.readme, r) {
+        eprintln!(
+            "  {} not updated (README={}: auto needs a complete run of the default selection up to 1M entries)",
+            path.display(),
+            o.readme
+        );
+        return;
+    }
+    match dir_24_8_compare::readme::update(path, r) {
+        Ok(true) => eprintln!("  updated the detailed results of {}", path.display()),
+        Ok(false) => eprintln!(
+            "  detailed results of {} already up to date",
+            path.display()
+        ),
+        Err(e) => eprintln!("  warning: README not updated: {e}"),
+    }
 }
 
 enum Exit {
@@ -598,6 +621,7 @@ fn orchestrate(o: &Options, entries: &[registry::Entry]) -> usize {
     for f in files {
         eprintln!("  {}", f.display());
     }
+    refresh_readme(o, &results);
     results
         .runs
         .iter()
