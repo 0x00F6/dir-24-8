@@ -616,8 +616,9 @@ make flamegraph   # PROFILE_SECONDS=<s> per method, default 1
 - API documentation: [docs.rs/dir-24-8](https://docs.rs/dir-24-8).
 - Project page with the latest benchmark reports and API docs:
   [0x00f6.github.io/dir-24-8](https://0x00f6.github.io/dir-24-8/), rebuilt by
-  [`.github/workflows/pages.yml`](.github/workflows/pages.yml) for every version
-  tag (`make release`).
+  [`.github/workflows/pages.yml`](.github/workflows/pages.yml): with fresh
+  benchmarks for every version tag (`make release`), and in a few minutes,
+  reusing the latest reports, whenever the site sources change on `master`.
 - Design and measurements: [docs/architecture.md](docs/architecture.md),
   [docs/performance.md](docs/performance.md).
 - Conventions, invariants and `unsafe` policy: [AGENTS.md](AGENTS.md).

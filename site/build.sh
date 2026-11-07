@@ -9,6 +9,8 @@
 # usage: site/build.sh <out-dir>
 #   REPORTS=<dir>      reports to publish (default benchmarks/reports)
 #   SITE_REPO_URL=<u>  repository link (default from GITHUB_REPOSITORY)
+#   REPORTS_REUSED=1   the reports come from the deployed site (pages.yml,
+#                      site mode), not from this run
 # Needs jq and envsubst. A missing report is shown as "not available".
 set -euo pipefail
 
@@ -103,8 +105,11 @@ CARD_LIB=$(card \
     "    <dt>Measurements</dt><dd>\($m.status_reason | sub("^measurements: "; "") | @html)</dd>"
 ')
 
-if [[ -n "${GITHUB_ACTIONS:-}" ]]; then
-  BENCH_NOTE="Measured for release $GITHUB_REF_NAME by the GitHub Actions run that built this page, on a shared virtual machine: compare structures within one report rather than absolute numbers across machines. The README shows measurements from dedicated hardware."
+if [[ -n "${REPORTS_REUSED:-}" ]]; then
+  BENCH_NOTE='Reports of the latest release, measured by the GitHub Actions run of that release on a shared virtual machine: compare structures within one report rather than absolute numbers across machines.'
+elif [[ -n "${GITHUB_ACTIONS:-}" ]]; then
+  if [[ ${GITHUB_REF_TYPE:-} == tag ]]; then what="release $GITHUB_REF_NAME"; else what="commit ${GITHUB_SHA:0:7}"; fi
+  BENCH_NOTE="Measured for $what by the GitHub Actions run that built this page, on a shared virtual machine: compare structures within one report rather than absolute numbers across machines."
 else
   BENCH_NOTE='Measured on the machine shown on each card. Compare structures within one report rather than absolute numbers across machines.'
 fi

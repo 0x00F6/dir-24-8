@@ -2,39 +2,54 @@ name: Pages
 
 # Builds the GitHub Pages site: a landing page presenting the project, the
 # interactive reports of `make bench-compare` and `make bench-compare-lib`
-# measured on this runner and the API documentation (site/build.sh). The same run refreshes the benchmark section of README.md
-# (charts, summary, detailed results) and commits it to master
-# (site/publish-results.sh).
+# and the API documentation (site/build.sh).
 #
-# Runs when a version tag is pushed (`make release VERSION=X.Y.Z` pushes
-# vX.Y.Z; semver pre-releases too) or by hand (Actions > Pages > Run
-# workflow). The github-pages environment must allow the ref: v* tags, and
-# master for manual runs.
+# Two modes:
+#
+# * full, for a version tag (`make release VERSION=X.Y.Z` pushes vX.Y.Z;
+#   semver pre-releases too) or a manual run (Actions > Pages > Run
+#   workflow): measures both benchmarks on this runner, refreshes the
+#   benchmark section of README.md (charts, summary, detailed results) and
+#   commits it to master (site/publish-results.sh), then deploys;
+# * site, for a push to master that changes the site (paths below): reuses
+#   the reports of the latest release from the deployed site, rebuilds the
+#   page and the API docs and deploys, in a few minutes.
+#
+# The github-pages environment allows master and v* tags.
 
 on:
   push:
+    branches: [master]
+    # Path filters only apply to branch pushes; tag pushes always run.
     tags:
       - "v[0-9]+.[0-9]+.[0-9]+"
       - "v[0-9]+.[0-9]+.[0-9]+-*"
+    paths:
+      - "site/**"
+      - ".github/workflows/pages.yml"
+      - "docs/images/logo.png"
+      - "docs/videos/**"
+      - "benchmarks/charts/lookup-flamegraph.svg"
   workflow_dispatch:
 
 permissions:
   contents: read
 
-# A newer version tag supersedes a running build (the benchmarks take about
-# an hour).
+# One queue per mode: a newer release supersedes a running release build
+# (the benchmarks take about an hour), a site change never cancels it.
 concurrency:
-  group: pages
+  group: pages-${{ github.event_name == 'push' && github.ref_type == 'branch' && 'site' || 'full' }}
   cancel-in-progress: true
 
 env:
   CARGO_TERM_COLOR: always
   COMPARE_SIZES: "1k,10k,100k,1M"
   LIB_PROFILE: standard
+  MODE: ${{ github.event_name == 'push' && github.ref_type == 'branch' && 'site' || 'full' }}
 
 jobs:
   build:
-    name: benchmarks, docs and site
+    name: ${{ github.event_name == 'push' && github.ref_type == 'branch' && 'site and docs (latest release reports)' || 'benchmarks, docs and site' }}
     runs-on: ubuntu-24.04
     timeout-minutes: 240
     permissions:
@@ -45,23 +60,29 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
+      - id: pages
+        uses: actions/configure-pages@v5
       # Any go >= 1.21: bench-compare-lib fetches the toolchain pinned in go.mod.
       - uses: actions/setup-go@v5
+        if: env.MODE == 'full'
         with:
           go-version: "1.24"
           cache: false
       # The chart captures drive the runner's Chrome over the DevTools
       # protocol (global WebSocket: Node 22+) and finish with Pillow.
       - uses: actions/setup-node@v4
+        if: env.MODE == 'full'
         with:
           node-version: "22"
       - name: Chart tools
+        if: env.MODE == 'full'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq python3-pil
           google-chrome --version
 
       - name: Runner
+        if: env.MODE == 'full'
         run: |
           lscpu | grep -E 'Model name|^CPU\(s\)|Flags' | cut -c1-200
           free -h
@@ -71,12 +92,14 @@ jobs:
       # sizes that would not fit in its memory. Failed or invalid runs are
       # reported in the page instead of blocking it.
       - name: make bench-compare
+        if: env.MODE == 'full'
         run: |
           threads="1,2,$(nproc)"
           make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 README=1 \
             || echo "::warning::bench-compare reported failed or invalid runs (see its report)"
 
       - name: make bench-compare-lib
+        if: env.MODE == 'full'
         run: |
           make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=1 \
             || echo "::warning::bench-compare-lib did not complete (see its report)"
@@ -84,18 +107,35 @@ jobs:
       # README.md now holds the new summary and detailed results (README=1,
       # BENCH_README=1); the charts are captured from the new reports.
       - name: Benchmark charts
+        if: env.MODE == 'full'
         run: site/charts.sh
 
       - name: Commit the benchmark results to master
+        if: env.MODE == 'full'
         run: site/publish-results.sh
+
+      # Site mode: the reports of the latest release, as deployed.
+      - name: Reports of the latest release
+        if: env.MODE == 'site'
+        env:
+          BASE_URL: ${{ steps.pages.outputs.base_url }}
+        run: |
+          mkdir -p benchmarks/reports
+          for f in bench-compare/report.html bench-compare/results.json bench-compare/results.csv \
+                   bench-compare-lib/bench-compare-lib.html bench-compare-lib/bench-compare-lib.json \
+                   bench-compare-lib/bench-compare-lib.csv; do
+            curl -fsSL "$BASE_URL/$f" -o "benchmarks/reports/${f#*/}" \
+              || echo "::warning::$f is not on the deployed site: its card will say no report"
+          done
 
       - name: API documentation
         run: cargo doc -p dir-24-8 --all-features --no-deps
 
       - name: Assemble the site
+        env:
+          REPORTS_REUSED: ${{ env.MODE == 'site' && '1' || '' }}
         run: site/build.sh _site
 
-      - uses: actions/configure-pages@v5
       - uses: actions/upload-pages-artifact@v3
         with:
           path: _site
