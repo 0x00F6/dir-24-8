@@ -474,7 +474,7 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 ### Summary: throughput and p99 latency
 
 <!-- bench-compare-lib:summary:start -->
-- **Run**: `make bench-compare-lib`, standard profile, 2026-11-07, AMD EPYC 9V74 80-Core Processor
+- **Run**: `make bench-compare-lib`, standard profile, 2026-11-07, AMD EPYC 9V45 96-Core Processor
 - **Workload**: 1M input prefixes, mixed scenario (50 % hits), one thread unless noted
 - **Statistic**: median of 5 processes per library
 - **Full report**: [bench-compare-lib.html](https://0x00f6.github.io/dir-24-8/bench-compare-lib/bench-compare-lib.html) (every size and scenario; `benchmarks/reports/` locally), methodology in [benchmarks/compare-lib/README.md](benchmarks/compare-lib/README.md)
@@ -483,16 +483,16 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 
 | Scenario | Metric | 🦀 `dir-24-8 (scalar)` | 🐹 `go-cidranger-libp2p` | 🐹 `cidranger-yl2chen` | 🐹 `go-iptrie` | 🐹 `bart` | 🦀 `prefix-trie` | 🦀 `iprange` | 🏛️ `libmaxminddb` |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
-| IPv4 LPM lookup | Throughput | 🏆 **49.3 M/s** | 0.8 M/s (adapted) | 0.5 M/s (adapted) | 1.1 M/s | 11.1 M/s | 13.2 M/s | — | 3.8 M/s |
-| IPv4 LPM lookup, 4 threads | Throughput | 🏆 **138.2 M/s** | 2.6 M/s | 1.7 M/s | 4.1 M/s | 34.5 M/s | 45.7 M/s | — | 13.1 M/s |
-| IPv4 LPM lookup | p99 Tail Latency | 401 ns | 3 335 ns | 5 418 ns | 2 264 ns | 621 ns | 🏆 **321 ns** | — | 951 ns |
-| IPv4 membership | Throughput | 🏆 **111.9 M/s** | 7.1 M/s | 6.2 M/s | 9.4 M/s | 56.1 M/s | 18.7 M/s | 38.5 M/s | 3.7 M/s |
-| IPv4 structure | Bytes per prefix | 160 B | 273 B | 757 B | 150 B | 40 B | 22 B | 🏆 **14 B** | 28 B |
-| IPv6 LPM lookup | Throughput | 🏆 **9.6 M/s** | 0.7 M/s (adapted) | 0.4 M/s (adapted) | 0.9 M/s | 3.6 M/s | 4.3 M/s | — | 2.0 M/s |
-| IPv6 LPM lookup, 4 threads | Throughput | 🏆 **23.4 M/s** | 2.2 M/s | 1.3 M/s | 3.3 M/s | 13.3 M/s | 15.2 M/s | — | 6.3 M/s |
-| IPv6 LPM lookup | p99 Tail Latency | 1 192 ns | 3 525 ns | 6 099 ns | 2 534 ns | 951 ns | 🏆 **771 ns** | — | 1 543 ns |
-| IPv6 membership | Throughput | 14.1 M/s | 2.0 M/s | 1.2 M/s | 3.0 M/s | 🏆 **15.7 M/s** | 4.4 M/s | 6.4 M/s | 2.1 M/s |
-| IPv6 structure | Bytes per prefix | 1 734 B | 335 B | 818 B | 160 B | 107 B | 🏆 **57 B** | 81 B | 115 B |
+| IPv4 LPM lookup | Throughput | 🏆 **62.2 M/s** | 1.0 M/s (adapted) | 0.6 M/s (adapted) | 1.4 M/s | 13.0 M/s | 26.0 M/s | — | 5.2 M/s |
+| IPv4 LPM lookup, 4 threads | Throughput | 🏆 **168.3 M/s** | 3.5 M/s | 2.2 M/s | 5.5 M/s | 48.5 M/s | 84.3 M/s | — | 21.7 M/s |
+| IPv4 LPM lookup | p99 Tail Latency | 291 ns | 2 684 ns | 4 347 ns | 1 983 ns | 581 ns | 🏆 **170 ns** | — | 661 ns |
+| IPv4 membership | Throughput | 🏆 **168.7 M/s** | 12.2 M/s | 10.5 M/s | 17.3 M/s | 90.1 M/s | 35.5 M/s | 61.5 M/s | 5.8 M/s |
+| IPv4 structure | Bytes per prefix | 160 B | 274 B | 756 B | 150 B | 40 B | 22 B | 🏆 **14 B** | 28 B |
+| IPv6 LPM lookup | Throughput | 🏆 **10.2 M/s** | 0.9 M/s (adapted) | 0.5 M/s (adapted) | 1.2 M/s | 4.9 M/s | 5.4 M/s | — | 2.5 M/s |
+| IPv6 LPM lookup, 4 threads | Throughput | 🏆 **24.6 M/s** | 3.0 M/s | 1.9 M/s | 4.5 M/s | 16.0 M/s | 22.1 M/s | — | 8.4 M/s |
+| IPv6 LPM lookup | p99 Tail Latency | 922 ns | 2 934 ns | 5 599 ns | 2 253 ns | 932 ns | 🏆 **421 ns** | — | 1 141 ns |
+| IPv6 membership | Throughput | 16.1 M/s | 3.4 M/s | 2.1 M/s | 5.4 M/s | 🏆 **24.4 M/s** | 6.4 M/s | 9.1 M/s | 2.8 M/s |
+| IPv6 structure | Bytes per prefix | 1 734 B | 335 B | 816 B | 160 B | 111 B | 🏆 **57 B** | 81 B | 115 B |
 <!-- bench-compare-lib:summary:end -->
 
 - The two cidrangers have no LPM API: their lookup is adapted from
@@ -537,7 +537,7 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 ### Detailed results
 
 <!-- bench-compare:details:start -->
-- **Run**: `make bench-compare`, 2026-11-07, AMD EPYC 9V74 80-Core Processor, dir-24-8 batch kernel avx2
+- **Run**: `make bench-compare`, 2026-11-07, AMD EPYC 9V45 96-Core Processor, dir-24-8 batch kernel avx512
 - **Workload**: random distribution (50 % hits), 1 048 576 queries, batches of 256
 - **Units**: M/s = millions of addresses per second (full `Option<LookupMatch>` results); p50/p99 of isolated single lookups, one thread
 - **Footprint**: includes the prefix + payload table competitors need
@@ -548,34 +548,34 @@ make bench-compare-lib   # Go, C and Rust libraries, each in a native runner -> 
 
 | IPv4, 1M | lookup 1T | batch 1T | exists 1T | lookup 4T | batch 4T | p50 | p99 | footprint | build |
 |---|---|---|---|---|---|---|---|---|---|
-| `dir-24-8 (SIMD AVX2 batches)` | 🏆 **44 M/s** | 🏆 **60 M/s** | 81 M/s | 111 M/s | 🏆 **174 M/s** | 🏆 **50 ns** | 431 ns | 174 MiB | 0.60 s |
-| `dir-24-8 (scalar)` | 41 M/s | 51 M/s | 🏆 **159 M/s** | 🏆 **116 M/s** | 156 M/s | 60 ns | 451 ns | 174 MiB | 0.59 s |
-| `poptrie(s=18,k=6)` | 22 M/s | 34 M/s | 59 M/s | 57 M/s | 80 M/s | 90 ns | 🏆 **421 ns** | 39 MiB | 0.40 s |
-| `prefix-trie(0.10)` | 5.2 M/s | 8.7 M/s | 18 M/s | 22 M/s | 34 M/s | 130 ns | 691 ns | 51 MiB | 0.14 s |
-| `ip_network_table(0.2)` | 4.7 M/s | 7.6 M/s | 11 M/s | 20 M/s | 27 M/s | 180 ns | 731 ns | 46 MiB | 0.16 s |
-| `sorted-intervals` | 5.1 M/s | 6.0 M/s | 6.8 M/s | 16 M/s | 18 M/s | 260 ns | 991 ns | 46 MiB | 0.14 s |
-| `hashmap-lpm(fxhash)` | 4.9 M/s | 5.7 M/s | 6.9 M/s | 14 M/s | 17 M/s | 260 ns | 601 ns | 53 MiB | 🏆 **0.03 s** |
-| `iptrie-lctrie(0.11)` | 5.0 M/s | 5.3 M/s | 6.8 M/s | 17 M/s | 18 M/s | 310 ns | 851 ns | 50 MiB | 0.62 s |
-| `rangemap(1.8)` | 3.4 M/s | 4.1 M/s | 4.5 M/s | 12 M/s | 15 M/s | 310 ns | 791 ns | 72 MiB | 0.96 s |
-| `radix-tree(patricia)` | 2.1 M/s | 2.5 M/s | 2.6 M/s | 9.4 M/s | 9.7 M/s | 561 ns | 1.45 µs | 59 MiB | 0.46 s |
-| `patricia_tree(0.10)` | 1.1 M/s | 1.1 M/s | 1.1 M/s | 4.4 M/s | 4.7 M/s | 1.13 µs | 2.61 µs | 56 MiB | 1.2 s |
-| `radix_trie(0.3)` | 0.8 M/s | 0.8 M/s | 0.8 M/s | 3.0 M/s | 3.0 M/s | 1.39 µs | 3.21 µs | 479 MiB | 1.9 s |
-| `roaring(0.12)` (exists only) | — | — | 15 M/s | — | — | — | — | 🏆 **3 MiB** | 0.56 s |
+| `dir-24-8 (scalar)` | 48 M/s | 🏆 **67 M/s** | 🏆 **273 M/s** | 🏆 **155 M/s** | 214 M/s | 🏆 **30 ns** | 431 ns | 174 MiB | 0.46 s |
+| `dir-24-8 (SIMD AVX-512 batches)` | 🏆 **60 M/s** | 66 M/s | 254 M/s | 145 M/s | 🏆 **232 M/s** | 🏆 **30 ns** | 🏆 **330 ns** | 174 MiB | 0.45 s |
+| `poptrie(s=18,k=6)` | 32 M/s | 47 M/s | 114 M/s | 89 M/s | 111 M/s | 50 ns | 391 ns | 39 MiB | 0.42 s |
+| `prefix-trie(0.10)` | 8.8 M/s | 14 M/s | 35 M/s | 33 M/s | 49 M/s | 80 ns | 521 ns | 51 MiB | 0.08 s |
+| `sorted-intervals` | 4.0 M/s | 9.1 M/s | 16 M/s | 21 M/s | 28 M/s | 150 ns | 1.03 µs | 46 MiB | 0.09 s |
+| `hashmap-lpm(fxhash)` | 6.8 M/s | 8.5 M/s | 11 M/s | 18 M/s | 22 M/s | 210 ns | 541 ns | 53 MiB | 🏆 **0.02 s** |
+| `iptrie-lctrie(0.11)` | 6.4 M/s | 7.7 M/s | 11 M/s | 24 M/s | 21 M/s | 320 ns | 971 ns | 50 MiB | 0.49 s |
+| `ip_network_table(0.2)` | 6.0 M/s | 7.0 M/s | 15 M/s | 32 M/s | 47 M/s | 90 ns | 621 ns | 46 MiB | 0.10 s |
+| `rangemap(1.8)` | 4.2 M/s | 4.8 M/s | 6.5 M/s | 16 M/s | 22 M/s | 240 ns | 771 ns | 72 MiB | 0.67 s |
+| `radix-tree(patricia)` | 2.8 M/s | 3.7 M/s | 3.6 M/s | 14 M/s | 15 M/s | 531 ns | 1.55 µs | 59 MiB | 0.33 s |
+| `patricia_tree(0.10)` | 1.1 M/s | 1.4 M/s | 1.8 M/s | 4.9 M/s | 6.8 M/s | 1.11 µs | 2.73 µs | 56 MiB | 0.91 s |
+| `radix_trie(0.3)` | 0.9 M/s | 1.1 M/s | 1.1 M/s | 4.1 M/s | 4.0 M/s | 1.50 µs | 3.58 µs | 479 MiB | 1.5 s |
+| `roaring(0.12)` (exists only) | — | — | 24 M/s | — | — | — | — | 🏆 **3 MiB** | 0.29 s |
 
 | IPv6, 1M | lookup 1T | batch 1T | exists 1T | lookup 4T | batch 4T | p50 | p99 | footprint | build |
 |---|---|---|---|---|---|---|---|---|---|
-| `dir-24-8 (SIMD AVX2 batches)` | 🏆 **9.9 M/s** | 🏆 **17 M/s** | 14 M/s | 25 M/s | 🏆 **51 M/s** | 🏆 **280 ns** | 1.20 µs | 2.15 GiB | 4.1 s |
-| `dir-24-8 (scalar)` | 9.3 M/s | 11 M/s | 🏆 **15 M/s** | 🏆 **25 M/s** | 34 M/s | 300 ns | 1.51 µs | 2.15 GiB | 4.2 s |
-| `poptrie(s=18,k=6)` | 5.8 M/s | 8.7 M/s | 8.7 M/s | 17 M/s | 23 M/s | 330 ns | 971 ns | 90 MiB | 1.2 s |
-| `iptrie-lctrie(0.11)` | 4.2 M/s | 4.6 M/s | 5.2 M/s | 13 M/s | 15 M/s | 401 ns | 🏆 **861 ns** | 85 MiB | 0.76 s |
-| `sorted-intervals` | 2.7 M/s | 3.2 M/s | 3.4 M/s | 8.5 M/s | 9.9 M/s | 541 ns | 1.18 µs | 90 MiB | 0.31 s |
-| `prefix-trie(0.10)` | 2.7 M/s | 3.1 M/s | 4.3 M/s | 11 M/s | 13 M/s | 391 ns | 1.15 µs | 95 MiB | 0.34 s |
-| `ip_network_table(0.2)` | 2.4 M/s | 2.7 M/s | 3.3 M/s | 9.2 M/s | 11 M/s | 421 ns | 1.24 µs | 105 MiB | 0.35 s |
-| `rangemap(1.8)` | 2.3 M/s | 2.5 M/s | 2.8 M/s | 7.9 M/s | 8.7 M/s | 501 ns | 951 ns | 172 MiB | 1.3 s |
-| `radix-tree(patricia)` | 1.5 M/s | 1.7 M/s | 1.7 M/s | 6.0 M/s | 6.5 M/s | 751 ns | 1.66 µs | 82 MiB | 0.68 s |
-| `patricia_tree(0.10)` | 0.9 M/s | 0.9 M/s | 1.0 M/s | 3.4 M/s | 3.5 M/s | 1.22 µs | 2.70 µs | 🏆 **67 MiB** | 1.3 s |
-| `hashmap-lpm(fxhash)` | 0.9 M/s | 0.8 M/s | 0.9 M/s | 2.5 M/s | 2.5 M/s | 1.22 µs | 1.87 µs | 125 MiB | 🏆 **0.07 s** |
-| `radix_trie(0.3)` | 0.7 M/s | 0.7 M/s | 0.7 M/s | 2.3 M/s | 2.4 M/s | 1.80 µs | 3.60 µs | 517 MiB | 2.2 s |
+| `dir-24-8 (SIMD AVX-512 batches)` | 🏆 **11 M/s** | 🏆 **26 M/s** | 15 M/s | 28 M/s | 🏆 **80 M/s** | 🏆 **190 ns** | 1.06 µs | 2.15 GiB | 3.0 s |
+| `dir-24-8 (scalar)` | 11 M/s | 14 M/s | 🏆 **18 M/s** | 🏆 **29 M/s** | 43 M/s | 200 ns | 1.03 µs | 2.15 GiB | 2.9 s |
+| `poptrie(s=18,k=6)` | 7.3 M/s | 10 M/s | 8.5 M/s | 20 M/s | 29 M/s | 🏆 **190 ns** | 881 ns | 90 MiB | 0.94 s |
+| `iptrie-lctrie(0.11)` | 5.2 M/s | 6.2 M/s | 6.1 M/s | 15 M/s | 17 M/s | 320 ns | 🏆 **781 ns** | 85 MiB | 0.52 s |
+| `sorted-intervals` | 3.7 M/s | 4.3 M/s | 4.9 M/s | 12 M/s | 13 M/s | 401 ns | 1.02 µs | 90 MiB | 0.21 s |
+| `prefix-trie(0.10)` | 3.1 M/s | 3.6 M/s | 6.1 M/s | 13 M/s | 15 M/s | 210 ns | 941 ns | 95 MiB | 0.19 s |
+| `rangemap(1.8)` | 3.1 M/s | 3.5 M/s | 3.5 M/s | 10 M/s | 12 M/s | 381 ns | 801 ns | 172 MiB | 0.92 s |
+| `ip_network_table(0.2)` | 3.4 M/s | 3.3 M/s | 4.5 M/s | 12 M/s | 16 M/s | 250 ns | 981 ns | 105 MiB | 0.23 s |
+| `radix-tree(patricia)` | 1.6 M/s | 2.0 M/s | 2.0 M/s | 7.9 M/s | 9.0 M/s | 591 ns | 1.54 µs | 82 MiB | 0.45 s |
+| `patricia_tree(0.10)` | 0.9 M/s | 1.3 M/s | 1.4 M/s | 4.3 M/s | 4.9 M/s | 1.20 µs | 2.82 µs | 🏆 **67 MiB** | 1.00 s |
+| `hashmap-lpm(fxhash)` | 1.2 M/s | 1.1 M/s | 1.4 M/s | 3.5 M/s | 3.5 M/s | 831 ns | 1.42 µs | 125 MiB | 🏆 **0.05 s** |
+| `radix_trie(0.3)` | 0.8 M/s | 0.7 M/s | 1.0 M/s | 3.2 M/s | 3.4 M/s | 1.67 µs | 4.03 µs | 517 MiB | 1.6 s |
 <!-- bench-compare:details:end -->
 
 See [docs/performance.md](docs/performance.md) for every measurement behind the
