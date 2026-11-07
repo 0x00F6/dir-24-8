@@ -11,6 +11,8 @@
 #   SITE_REPO_URL=<u>  repository link (default from GITHUB_REPOSITORY)
 #   REPORTS_REUSED=1   the reports come from the deployed site (pages.yml,
 #                      site mode), not from this run
+#   REPORTS_CACHED=1   the reports come from the benchmark cache of pages.yml
+#                      (full mode, same measured sources), not from this run
 # Needs jq and envsubst. A missing report is shown as "not available".
 set -euo pipefail
 
@@ -107,6 +109,8 @@ CARD_LIB=$(card \
 
 if [[ -n "${REPORTS_REUSED:-}" ]]; then
   BENCH_NOTE='Reports of the latest release, measured by the GitHub Actions run of that release on a shared virtual machine: compare structures within one report rather than absolute numbers across machines.'
+elif [[ -n "${REPORTS_CACHED:-}" ]]; then
+  BENCH_NOTE='Measured by an earlier GitHub Actions run of the same source code (date on each card), on a shared virtual machine: compare structures within one report rather than absolute numbers across machines.'
 elif [[ -n "${GITHUB_ACTIONS:-}" ]]; then
   if [[ ${GITHUB_REF_TYPE:-} == tag ]]; then what="release $GITHUB_REF_NAME"; else what="commit ${GITHUB_SHA:0:7}"; fi
   BENCH_NOTE="Measured for $what by the GitHub Actions run that built this page, on a shared virtual machine: compare structures within one report rather than absolute numbers across machines."

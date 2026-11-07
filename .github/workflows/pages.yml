@@ -15,6 +15,16 @@ name: Pages
 #   the reports of the latest release from the deployed site, rebuilds the
 #   page and the API docs and deploys, in a few minutes.
 #
+# Full mode skips the benchmarks when the source code they measure has not
+# changed: their reports are cached per source fingerprint (library,
+# benchmark crates and runners, lockfile, Makefile, chart scripts, plus the
+# compiler version and the settings below). A run whose fingerprint is
+# cached skips the benchmarks, the charts and the README commit and deploys
+# the cached reports; only complete reports are cached. Ticking "Measure
+# the benchmarks" in a manual run measures anyway; bump BENCH_CACHE_VERSION
+# when a benchmark command of this file changes. Compiled dependencies are
+# cached too (Swatinem/rust-cache).
+#
 # The github-pages environment allows master and v* tags.
 
 on:
@@ -31,6 +41,11 @@ on:
       - "docs/videos/**"
       - "benchmarks/charts/lookup-flamegraph.svg"
   workflow_dispatch:
+    inputs:
+      benchmarks:
+        description: Measure the benchmarks even if the source code is unchanged
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -45,6 +60,7 @@ env:
   CARGO_TERM_COLOR: always
   COMPARE_SIZES: "1k,10k,100k,1M"
   LIB_PROFILE: standard
+  BENCH_CACHE_VERSION: "1"
   MODE: ${{ github.event_name == 'push' && github.ref_type == 'branch' && 'site' || 'full' }}
 
 jobs:
@@ -60,29 +76,63 @@ jobs:
         with:
           fetch-depth: 0
       - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: pages
       - id: pages
         uses: actions/configure-pages@v5
+
+      # Full mode: measure only when no complete report of the same sources
+      # is cached (steps.plan.outputs.measure stays empty in site mode).
+      - id: fingerprint
+        name: Source fingerprint of the benchmarks
+        if: env.MODE == 'full'
+        env:
+          SOURCES: ${{ hashFiles('src/**', 'derive/**', 'benches/support/**', 'benchmarks/compare/**', 'benchmarks/compare-lib/**', 'Cargo.toml', 'Cargo.lock', 'Makefile', 'site/charts.*', 'site/pack_png.py', 'site/readme_blocks.py') }}
+        run: |
+          rustc=$(rustc --version | cut -d' ' -f2)
+          echo "key=bench-reports-v$BENCH_CACHE_VERSION-rustc$rustc-${COMPARE_SIZES//,/_}-$LIB_PROFILE-$SOURCES" >> "$GITHUB_OUTPUT"
+      - id: cached
+        if: env.MODE == 'full'
+        uses: actions/cache/restore@v4
+        with:
+          path: benchmarks/reports
+          key: ${{ steps.fingerprint.outputs.key }}
+      - id: plan
+        name: Measure or reuse the reports
+        if: env.MODE == 'full'
+        env:
+          HIT: ${{ steps.cached.outputs.cache-hit }}
+          FORCE: ${{ inputs.benchmarks }}
+        run: |
+          if [[ $HIT == true && $FORCE != true ]]; then
+            echo "measure=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::benchmarks skipped: the source code is unchanged since the cached reports"
+          else
+            echo "measure=true" >> "$GITHUB_OUTPUT"
+          fi
+
       # Any go >= 1.21: bench-compare-lib fetches the toolchain pinned in go.mod.
       - uses: actions/setup-go@v5
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         with:
           go-version: "1.24"
           cache: false
       # The chart captures drive the runner's Chrome over the DevTools
       # protocol (global WebSocket: Node 22+) and finish with Pillow.
       - uses: actions/setup-node@v4
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         with:
           node-version: "22"
       - name: Chart tools
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: |
           sudo apt-get update -qq
           sudo apt-get install -y -qq python3-pil
           google-chrome --version
 
       - name: Runner
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: |
           lscpu | grep -E 'Model name|^CPU\(s\)|Flags' | cut -c1-200
           free -h
@@ -92,26 +142,43 @@ jobs:
       # sizes that would not fit in its memory. Failed or invalid runs are
       # reported in the page instead of blocking it.
       - name: make bench-compare
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: |
           threads="1,2,$(nproc)"
           make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 README=1 \
             || echo "::warning::bench-compare reported failed or invalid runs (see its report)"
 
       - name: make bench-compare-lib
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: |
           make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=1 \
             || echo "::warning::bench-compare-lib did not complete (see its report)"
 
+      - id: complete
+        name: Complete reports
+        if: steps.plan.outputs.measure == 'true'
+        run: |
+          ok=true
+          jq -e '.meta.complete == true and ([.runs[] | select(.status == "failed" or .status == "invalid")] | length) == 0' \
+            benchmarks/reports/results.json > /dev/null || ok=false
+          jq -e '.meta.status == "complete"' benchmarks/reports/bench-compare-lib.json > /dev/null || ok=false
+          echo "complete=$ok" >> "$GITHUB_OUTPUT"
+          [[ $ok == true ]] || echo "::warning::incomplete benchmark reports: not cached, the next run measures again"
+      - name: Cache the benchmark reports
+        if: steps.plan.outputs.measure == 'true' && steps.cached.outputs.cache-hit != 'true' && steps.complete.outputs.complete == 'true'
+        uses: actions/cache/save@v4
+        with:
+          path: benchmarks/reports
+          key: ${{ steps.fingerprint.outputs.key }}
+
       # README.md now holds the new summary and detailed results (README=1,
       # BENCH_README=1); the charts are captured from the new reports.
       - name: Benchmark charts
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: site/charts.sh
 
       - name: Commit the benchmark results to master
-        if: env.MODE == 'full'
+        if: steps.plan.outputs.measure == 'true'
         run: site/publish-results.sh
 
       # Site mode: the reports of the latest release, as deployed.
@@ -134,6 +201,7 @@ jobs:
       - name: Assemble the site
         env:
           REPORTS_REUSED: ${{ env.MODE == 'site' && '1' || '' }}
+          REPORTS_CACHED: ${{ steps.plan.outputs.measure == 'false' && '1' || '' }}
         run: site/build.sh _site
 
       - uses: actions/upload-pages-artifact@v3
