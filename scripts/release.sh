@@ -88,7 +88,7 @@ publish git tag -a "$tag" -m "dir-24-8 $version"
 publish git push origin "refs/tags/$tag"
 
 step "GitHub release $tag"
-args=(--repo "$repo" --title "dir-24-8 $version" --verify-tag)
+args=(--repo "$repo" --title "$tag" --verify-tag)
 if [[ -n ${NOTES:-} ]]; then
   [[ -f $NOTES ]] || die "NOTES file $NOTES not found"
   args+=(--notes-file "$NOTES")
