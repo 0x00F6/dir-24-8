@@ -23,6 +23,8 @@ touch "$out/.nojekyll"
 cp "$root/site/style.css" "$root/site/highlight.js" "$out/"
 cp "$root/docs/images/logo.png" "$root/benchmarks/charts/lookup-flamegraph.svg" "$out/assets/"
 cp "$root/docs/videos/dir_24_8_lookup_cpu.mp4" "$root/docs/videos/dir_24_8_lookup_cpu.png" "$out/assets/"
+# Page images: dark logo, Ferris and its front claws, background tile.
+cp "$root"/site/assets/* "$out/assets/"
 
 # jq helpers: sizes (1000 -> 1k), lists, minutes.
 JQ_LIB='

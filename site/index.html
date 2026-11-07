@@ -3,131 +3,103 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="color-scheme" content="dark">
+<meta name="theme-color" content="#0b1020">
 <title>dir-24-8: fast IPv4 and IPv6 CIDR lookups in Rust</title>
 <meta name="description" content="Longest-prefix-match tables for IPv4 (DIR-24-8) and IPv6 (24/8 multi-level trie) in Rust: zero-copy lookups and optional AVX-512, AVX2 and NEON batch lookups. Benchmark reports included.">
 <link rel="stylesheet" href="style.css">
 </head>
-<body>
-<header class="hero">
-  <div class="wrap">
-    <img class="logo" src="assets/logo.png" alt="dir-24-8" width="2000" height="700">
-    <p class="tagline"><strong>Fast IPv4 and IPv6 CIDR lookups in Rust</strong>, zero-copy, with optional AVX-512 / AVX2 / NEON batch lookups.</p>
-    <nav class="actions" aria-label="Main links">
-      <a class="btn primary" href="#benchmarks">Benchmark reports</a>
-      <a class="btn" href="${API_HREF}">API documentation</a>
-      <a class="btn" href="${SITE_REPO_URL}">Source on GitHub</a>
-    </nav>
-  </div>
-</header>
-
-<main>
-  <section id="features" aria-labelledby="features-title">
-    <div class="wrap">
-      <h2 id="features-title">What it is</h2>
-      <p class="lead">A longest-prefix-match table for routing, firewall and geolocation data: insert CIDRs with an optional payload, then look addresses up in a few memory reads.</p>
-      <div class="grid">
-        <article class="card"><h3>IPv4: DIR-24-8</h3><p>A 2<sup>24</sup>-cell root plus 256-cell groups: one or two memory reads per lookup, <code>/0</code> to <code>/32</code>.</p></article>
-        <article class="card"><h3>IPv6: 24/8 trie</h3><p>The FIB6 / DPDK layout: a 2<sup>24</sup>-cell root, then one read per level, <code>/0</code> to <code>/128</code>.</p></article>
-        <article class="card"><h3>Zero-copy</h3><p>Lookups borrow the stored payload: no allocation, no clone, no lock, no <code>T: Clone</code> bound.</p></article>
-        <article class="card"><h3>SIMD batches</h3><p>With <code>batch-simd</code>, batches run the AVX-512, AVX2 or NEON kernel detected at runtime.</p></article>
-        <article class="card"><h3>Insert modes</h3><p><code>Replace</code> a payload or deep <code>Merge</code> it, with <code>#[derive(DeepMerge)]</code>, a closure or serde.</p></article>
-        <article class="card"><h3>Snapshots</h3><p>Save and load tables as compressed XZ snapshots, streamed, with validated input and limits.</p></article>
-      </div>
+<body class="t-ferris-lens feat-five">
+<div class="bg" aria-hidden="true"></div>
+<header class="topbar"><div class="wrap bar">
+  <a href="#main" aria-label="dir-24-8 home"><img class="logo-small" src="assets/logo-dark.png" alt="dir-24-8, longest-prefix match for IPv4 and IPv6, in Rust" width="1666" height="584"></a>
+  <nav aria-label="Main links"><a href="#features">What it is</a><a href="#start">Getting started</a><a href="#benchmarks">Benchmarks</a><a href="${SITE_REPO_URL}">GitHub</a><a class="btn primary" href="${API_HREF}">API documentation</a></nav>
+</div></header>
+<div class="hero hero-scene">
+  <div class="wrap scene-grid cols">
+    <div class="scene-text">
+      <p class="kicker">Memory · 32 bits per address</p>
+      <h1>Under the lens, only bits</h1>
+      <p class="tagline">Cell 0x2AB4 holds 11001011 00000000 01110001 00000111: the address 203.0.113.7. A scan would compare cell after cell; dir-24-8 turns the top 24 bits into a cell index and reads it directly.</p>
+      <p class="install"><span class="prompt" aria-hidden="true">$</span> <code>cargo add dir-24-8</code></p>
+      <nav class="actions" aria-label="Reports"><a class="btn primary" href="#benchmarks">Benchmark reports</a><a class="btn" href="#start">Getting started</a></nav>
     </div>
-  </section>
-
-  <section id="start" aria-labelledby="start-title">
-    <div class="wrap">
-      <h2 id="start-title">Getting started</h2>
-      <p class="lead">Rust 1.89 or later. No feature is enabled by default: the default build uses portable scalar kernels.</p>
-      <div class="two">
-        <div>
-          <p class="label">Cargo.toml</p>
-<pre><code class="language-toml">[dependencies]
-dir-24-8 = "0.1"
+    
+    <div class="scene"><svg viewBox="0 0 760 640" role="img" aria-labelledby="sc-title"><title id="sc-title">Ferris searches memory with a magnifying glass; under the lens, cell 0x2AB4 holds 11001011 00000000 01110001 00000111, the address 203.0.113.7</title><defs><clipPath id="lensclip"><circle cx="438" cy="406" r="70"/></clipPath></defs><rect class="sc-panel" x="16" y="16" width="728" height="454" rx="16"/><text class="sc-t2" x="36" y="44">memory · 24 cells of 32 bits, one IPv4 address each</text><rect class="sc-cell" x="36" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="48" y="78">0x2A60</text><text class="sc-bits" x="48" y="98">11011000</text><text class="sc-bits" x="48" y="114">00010000</text><text class="sc-bits" x="48" y="130">11111001</text><text class="sc-bits" x="48" y="146">11100001</text><rect class="sc-cell" x="152" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="164" y="78">0x2A64</text><text class="sc-bits" x="164" y="98">00100011</text><text class="sc-bits" x="164" y="114">10010110</text><text class="sc-bits" x="164" y="130">10111011</text><text class="sc-bits" x="164" y="146">01001001</text><rect class="sc-cell" x="268" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="280" y="78">0x2A68</text><text class="sc-bits" x="280" y="98">10101011</text><text class="sc-bits" x="280" y="114">10011101</text><text class="sc-bits" x="280" y="130">10101000</text><text class="sc-bits" x="280" y="146">00111101</text><rect class="sc-cell" x="384" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="396" y="78">0x2A6C</text><text class="sc-bits" x="396" y="98">00110100</text><text class="sc-bits" x="396" y="114">10101011</text><text class="sc-bits" x="396" y="130">11110011</text><text class="sc-bits" x="396" y="146">10001000</text><rect class="sc-cell" x="500" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="512" y="78">0x2A70</text><text class="sc-bits" x="512" y="98">00010111</text><text class="sc-bits" x="512" y="114">11110110</text><text class="sc-bits" x="512" y="130">01011001</text><text class="sc-bits" x="512" y="146">10111011</text><rect class="sc-cell" x="616" y="60" width="108" height="92" rx="6"/><text class="sc-t3" x="628" y="78">0x2A74</text><text class="sc-bits" x="628" y="98">01111000</text><text class="sc-bits" x="628" y="114">00100100</text><text class="sc-bits" x="628" y="130">10110110</text><text class="sc-bits" x="628" y="146">10000000</text><rect class="sc-cell" x="36" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="48" y="178">0x2A78</text><text class="sc-bits" x="48" y="198">00010101</text><text class="sc-bits" x="48" y="214">01100000</text><text class="sc-bits" x="48" y="230">01010111</text><text class="sc-bits" x="48" y="246">00101101</text><rect class="sc-cell" x="152" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="164" y="178">0x2A7C</text><text class="sc-bits" x="164" y="198">11011100</text><text class="sc-bits" x="164" y="214">10010110</text><text class="sc-bits" x="164" y="230">00001000</text><text class="sc-bits" x="164" y="246">10111000</text><rect class="sc-cell" x="268" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="280" y="178">0x2A80</text><text class="sc-bits" x="280" y="198">10111110</text><text class="sc-bits" x="280" y="214">11111001</text><text class="sc-bits" x="280" y="230">11111001</text><text class="sc-bits" x="280" y="246">11011011</text><rect class="sc-cell" x="384" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="396" y="178">0x2A84</text><text class="sc-bits" x="396" y="198">11010110</text><text class="sc-bits" x="396" y="214">01100011</text><text class="sc-bits" x="396" y="230">11101100</text><text class="sc-bits" x="396" y="246">01100001</text><rect class="sc-cell" x="500" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="512" y="178">0x2A88</text><text class="sc-bits" x="512" y="198">00111011</text><text class="sc-bits" x="512" y="214">01110110</text><text class="sc-bits" x="512" y="230">11101001</text><text class="sc-bits" x="512" y="246">10010000</text><rect class="sc-cell" x="616" y="160" width="108" height="92" rx="6"/><text class="sc-t3" x="628" y="178">0x2A8C</text><text class="sc-bits" x="628" y="198">01110010</text><text class="sc-bits" x="628" y="214">00001111</text><text class="sc-bits" x="628" y="230">10010010</text><text class="sc-bits" x="628" y="246">10110001</text><rect class="sc-cell" x="36" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="48" y="278">0x2A90</text><text class="sc-bits" x="48" y="298">11000001</text><text class="sc-bits" x="48" y="314">00011011</text><text class="sc-bits" x="48" y="330">01111011</text><text class="sc-bits" x="48" y="346">00110000</text><rect class="sc-cell" x="152" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="164" y="278">0x2A94</text><text class="sc-bits" x="164" y="298">11011110</text><text class="sc-bits" x="164" y="314">10010011</text><text class="sc-bits" x="164" y="330">01011000</text><text class="sc-bits" x="164" y="346">01011101</text><rect class="sc-cell" x="268" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="280" y="278">0x2A98</text><text class="sc-bits" x="280" y="298">11100110</text><text class="sc-bits" x="280" y="314">00110001</text><text class="sc-bits" x="280" y="330">10111101</text><text class="sc-bits" x="280" y="346">11100101</text><rect class="sc-cell" x="384" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="396" y="278">0x2A9C</text><text class="sc-bits" x="396" y="298">01011100</text><text class="sc-bits" x="396" y="314">11110100</text><text class="sc-bits" x="396" y="330">01110010</text><text class="sc-bits" x="396" y="346">10101010</text><rect class="sc-cell" x="500" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="512" y="278">0x2AA0</text><text class="sc-bits" x="512" y="298">01011001</text><text class="sc-bits" x="512" y="314">00011001</text><text class="sc-bits" x="512" y="330">01111000</text><text class="sc-bits" x="512" y="346">01100010</text><rect class="sc-cell" x="616" y="260" width="108" height="92" rx="6"/><text class="sc-t3" x="628" y="278">0x2AA4</text><text class="sc-bits" x="628" y="298">01111010</text><text class="sc-bits" x="628" y="314">01011111</text><text class="sc-bits" x="628" y="330">10101100</text><text class="sc-bits" x="628" y="346">10100110</text><rect class="sc-cell" x="36" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="48" y="378">0x2AA8</text><text class="sc-bits" x="48" y="398">00010000</text><text class="sc-bits" x="48" y="414">01011101</text><text class="sc-bits" x="48" y="430">01110111</text><text class="sc-bits" x="48" y="446">00100001</text><rect class="sc-cell" x="152" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="164" y="378">0x2AAC</text><text class="sc-bits" x="164" y="398">10111111</text><text class="sc-bits" x="164" y="414">11010001</text><text class="sc-bits" x="164" y="430">10111001</text><text class="sc-bits" x="164" y="446">10010010</text><rect class="sc-cell" x="268" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="280" y="378">0x2AB0</text><text class="sc-bits" x="280" y="398">01011110</text><text class="sc-bits" x="280" y="414">10000101</text><text class="sc-bits" x="280" y="430">10111111</text><text class="sc-bits" x="280" y="446">11101001</text><rect class="sc-cell" x="384" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="396" y="378">0x2AB4</text><text class="sc-bits" x="396" y="398">11001011</text><text class="sc-bits" x="396" y="414">00000000</text><text class="sc-bits" x="396" y="430">01110001</text><text class="sc-bits" x="396" y="446">00000111</text><rect class="sc-cell" x="500" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="512" y="378">0x2AB8</text><text class="sc-bits" x="512" y="398">00000000</text><text class="sc-bits" x="512" y="414">11010000</text><text class="sc-bits" x="512" y="430">01111011</text><text class="sc-bits" x="512" y="446">01101010</text><rect class="sc-cell" x="616" y="360" width="108" height="92" rx="6"/><text class="sc-t3" x="628" y="378">0x2ABC</text><text class="sc-bits" x="628" y="398">11001100</text><text class="sc-bits" x="628" y="414">01110101</text><text class="sc-bits" x="628" y="430">00110100</text><text class="sc-bits" x="628" y="446">01011011</text><ellipse class="shadow" cx="620.5" cy="611.1" rx="103.5" ry="7.4"/><g transform="translate(500.0,440.0) scale(0.46) rotate(-10,262,190)"><image href="assets/ferris.png" width="524" height="379"/></g><path class="sc-handle-bar" d="M 631.1 587.2 L 493.4 458.0"/><g transform="translate(500.0,440.0) scale(0.46) rotate(-10,262,190)"><image href="assets/ferris-claws.png" width="524" height="379"/></g><circle class="sc-glass-bg" cx="438" cy="406" r="76"/><g clip-path="url(#lensclip)"><g transform="translate(438,406) scale(1.4) translate(-427,-410)"><rect class="sc-open" x="384" y="360" width="108" height="92" rx="6"/><text class="sc-t3 sc-acc" x="396" y="378">0x2AB4</text><text class="sc-bits" x="396" y="398">11001011</text><text class="sc-bits" x="396" y="414">00000000</text><text class="sc-bits" x="396" y="430">01110001</text><text class="sc-bits" x="396" y="446">00000111</text></g></g><circle class="sc-ring" cx="438" cy="406" r="76"/><path class="sc-glare" d="M 390 372 A 58 58 0 0 1 426 348"/><path class="sc-guide" d="M 512 372 L 548 342"/><rect class="sign" x="548" y="318" width="160" height="40" rx="8"/><text class="sign-text" x="628" y="344" style="font-size:17px" text-anchor="middle">203.0.113.7</text><text class="sc-t2" x="36" y="500">cell 0x2AB4 holds 11001011 00000000 01110001 00000111</text><text class="sc-t3" x="36" y="524">a scan finds it; dir-24-8 computes the index</text></svg></div>
+  </div>
+</div>
+<main id="main">
+<section id="features" aria-labelledby="features-title">
+  <div class="wrap">
+    <p class="kicker">0x2AB4 &nbsp;struct IpTable&lt;T&gt;</p>
+    <h2 id="features-title">What it is</h2>
+    <p class="lead">A longest-prefix-match table for routing, firewall and geolocation data: insert CIDRs with an optional payload, then look addresses up in a few memory reads.</p>
+    <div class="feats"><article class="feat lead"><div><h3>IPv6: 24/8 trie</h3><p>The FIB6 / DPDK layout: a 2<sup>24</sup>-cell root, then one read per level, <code>/0</code> to <code>/128</code>.</p></div></article><article class="feat"><div><h3>Zero-copy</h3><p>Lookups borrow the stored payload: no allocation, no clone, no lock, no <code>T: Clone</code> bound.</p></div></article><article class="feat"><div><h3>SIMD batches</h3><p>With <code>batch-simd</code>, batches run the AVX-512, AVX2 or NEON kernel detected at runtime.</p></div></article><article class="feat"><div><h3>Insert modes</h3><p><code>Replace</code> a payload or deep <code>Merge</code> it, with <code>#[derive(DeepMerge)]</code>, a closure or serde.</p></div></article><article class="feat"><div><h3>Snapshots</h3><p>Save and load tables as compressed XZ snapshots, streamed, with validated input and limits.</p></div></article></div>
+  </div>
+</section>
+<section id="start" aria-labelledby="start-title">
+  <div class="wrap">
+    <p class="kicker">0x2AB8 &nbsp;cargo add dir-24-8</p>
+    <h2 id="start-title">Getting started</h2>
+    <p class="lead">Rust 1.89 or later. No feature is enabled by default: the default build uses portable scalar kernels.</p>
+    <div class="codes">
+      <figure class="pane"><figcaption>Cargo.toml</figcaption><pre><code class="language-toml">[dependencies]
+dir-24-8 = &quot;0.1&quot;
 
 # With SIMD batch lookups:
-# dir-24-8 = { version = "0.1", features = ["batch-simd"] }</code></pre>
-        </div>
-        <div>
-          <p class="label">main.rs</p>
-<pre><code class="language-rust">use dir_24_8::{IpNet, IpTable, Replace};
+# dir-24-8 = { version = &quot;0.1&quot;, features = [&quot;batch-simd&quot;] }</code></pre></figure>
+      <figure class="pane"><figcaption>main.rs</figcaption><pre><code class="language-rust">use dir_24_8::{IpNet, IpTable, Replace};
 
-let corp: IpNet = "10.0.0.0/8".parse()?;
-let lab: IpNet = "10.1.0.0/16".parse()?;
+let corp: IpNet = &quot;10.0.0.0/8&quot;.parse()?;
+let lab: IpNet = &quot;10.1.0.0/16&quot;.parse()?;
 
 let mut table: IpTable&lt;&amp;str&gt; = IpTable::new();
-table.insert(corp, Some("corp"), Replace)?;
+table.insert(corp, Some(&quot;corp&quot;), Replace)?;
 table.insert(lab, None, Replace)?; // no payload
 
-let m = table.lookup("10.2.3.4".parse()?).unwrap();
+let m = table.lookup(&quot;10.2.3.4&quot;.parse()?).unwrap();
 assert_eq!(m.prefix, corp);
-assert_eq!(m.data, Some(&amp;"corp")); // borrowed</code></pre>
-        </div>
-      </div>
+assert_eq!(m.data, Some(&amp;&quot;corp&quot;)); // borrowed</code></pre></figure>
     </div>
-  </section>
-
-  <section id="how" aria-labelledby="how-title">
-    <div class="wrap">
-      <h2 id="how-title">How it works</h2>
-      <p class="lead">Every cell holds the longest route covering its addresses, so a lookup never backtracks.</p>
-      <div class="two">
-        <ul class="points">
-          <li><strong>Cells</strong>: a <code>u32</code> is empty, a route slot, or a group whose sign bit is the flag.</li>
-          <li><strong>Folding</strong>: a group whose 256 cells become identical is folded back and reused.</li>
-          <li><strong>Batches</strong>: root reads of a whole block first, slot prefetch one chunk ahead, IPv6 lanes in lock step.</li>
-          <li><strong>Single lookups</strong>: always scalar, the fastest for one dependent chain of reads.</li>
-          <li><strong>Safety</strong>: gather indices are clamped; every <code>unsafe</code> block is justified.</li>
-        </ul>
-        <figure>
-          <video controls preload="none" poster="assets/dir_24_8_lookup_cpu.png" width="1920" height="1080">
-            <source src="assets/dir_24_8_lookup_cpu.mp4" type="video/mp4">
-            <a href="assets/dir_24_8_lookup_cpu.mp4">Download the video (MP4)</a>
-          </video>
-          <figcaption>How an IPv4 lookup works, down to the CPU caches (5 min).</figcaption>
-        </figure>
-      </div>
-      <div class="warning" role="note">
-        <h3>This structure needs a lot of RAM</h3>
-        <ul>
-          <li>Each family maps a 64 MiB root on its first insertion, even for one route.</li>
-          <li>About 160 B per IPv4 prefix and 1.7 KiB per IPv6 prefix at 1M prefixes.</li>
-          <li>Cap tables with <code>Config::max_routes</code> and <code>max_ipv6_groups</code>.</li>
-        </ul>
-      </div>
-    </div>
-  </section>
-
-  <section id="benchmarks" aria-labelledby="benchmarks-title">
-    <div class="wrap">
-      <h2 id="benchmarks-title">Benchmark reports</h2>
-      <p class="lead">Interactive reports of release ${SITE_VERSION}: latency percentiles, throughput, thread scaling and memory. Every structure is validated against an oracle before it is timed.</p>
-      <div class="two">
-        ${CARD_COMPARE}
-        ${CARD_LIB}
-      </div>
-      <p class="note">${BENCH_NOTE}</p>
-    </div>
-  </section>
-
-  <section id="profile" aria-labelledby="profile-title">
-    <div class="wrap">
-      <h2 id="profile-title">Where the time goes</h2>
-      <p class="lead">Flame graph of every public lookup method, IPv4 and IPv6 (<code>make flamegraph</code>).</p>
-      <figure>
-        <a href="assets/lookup-flamegraph.svg"><img class="figure-img" src="assets/lookup-flamegraph.svg" alt="Flame graph of every IPv4 and IPv6 lookup method" width="1200" height="326" loading="lazy"></a>
-        <figcaption>Open the image for the interactive flame graph (zoom, search).</figcaption>
+  </div>
+</section>
+<section id="how" aria-labelledby="how-title">
+  <div class="wrap">
+    <p class="kicker">0x2ABC &nbsp;fn lookup(&amp;self, ip)</p>
+    <h2 id="how-title">How it works</h2>
+    <p class="lead">Every cell holds the longest route covering its addresses, so a lookup never backtracks.</p>
+    <div class="how-grid">
+      <ul class="points"><li><strong>Cells</strong>: a <code>u32</code> is empty, a route slot, or a group whose sign bit is the flag.</li><li><strong>Folding</strong>: a group whose 256 cells become identical is folded back and reused.</li><li><strong>Batches</strong>: root reads of a whole block first, slot prefetch one chunk ahead, IPv6 lanes in lock step.</li><li><strong>Single lookups</strong>: always scalar, the fastest for one dependent chain of reads.</li><li><strong>Safety</strong>: gather indices are clamped; every <code>unsafe</code> block is justified.</li></ul>
+      <figure class="video">
+        <video controls preload="none" poster="assets/dir_24_8_lookup_cpu.png" width="1920" height="1080">
+          <source src="assets/dir_24_8_lookup_cpu.mp4" type="video/mp4">
+          <a href="assets/dir_24_8_lookup_cpu.mp4">Download the video (MP4)</a>
+        </video>
+        <figcaption>How an IPv4 lookup works, down to the CPU caches (5 min).</figcaption>
       </figure>
     </div>
-  </section>
-</main>
-
-<footer>
-  <div class="wrap">
-    <p><a href="${SITE_REPO_URL}/releases/tag/${SITE_VERSION}">${SITE_VERSION}</a>, built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
+    <div class="warning" role="note">
+      <h3><svg class="icon" viewBox="0 0 24 24" aria-hidden="true" width="20" height="20"><path d="M12 3 2 21h20L12 3z" fill="none" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><path d="M12 10v5M12 18h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span>This structure needs a lot of RAM</span></h3>
+      <ul><li>Each family maps a 64 MiB root on its first insertion, even for one route.</li><li>About 160 B per IPv4 prefix and 1.7 KiB per IPv6 prefix at 1M prefixes.</li><li>Cap tables with <code>Config::max_routes</code> and <code>max_ipv6_groups</code>.</li></ul>
+    </div>
   </div>
-</footer>
+</section>
+<section id="benchmarks" aria-labelledby="benchmarks-title">
+  <div class="wrap">
+    <p class="kicker">0x2AC0 &nbsp;make bench-compare</p>
+    <h2 id="benchmarks-title">Benchmark reports</h2>
+    <p class="lead">Interactive reports of release ${SITE_VERSION}: latency percentiles, throughput, thread scaling and memory. Every structure is validated against an oracle before it is timed.</p>
+    <div class="reports">
+      ${CARD_COMPARE}
+      ${CARD_LIB}
+    </div>
+    <p class="note">${BENCH_NOTE}</p>
+  </div>
+</section>
+</main>
+<footer class="foot"><div class="wrap">
+  <p><a href="${SITE_REPO_URL}/releases/tag/${SITE_VERSION}">${SITE_VERSION}</a>, built from commit <a href="${SITE_REPO_URL}/commit/${SITE_COMMIT}"><code>${SITE_COMMIT_SHORT}</code></a> on ${SITE_DATE}. Licensed under MIT or Apache-2.0.</p>
+</div></footer>
 <script src="highlight.js" defer></script>
 </body>
 </html>
