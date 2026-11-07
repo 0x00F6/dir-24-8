@@ -3,3 +3,4 @@
 /benchmarks/reports/*
 !/benchmarks/reports/.gitkeep
 __pycache__/
+/tmp
