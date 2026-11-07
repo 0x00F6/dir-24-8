@@ -43,7 +43,7 @@
 #                           (needs go >= 1.21 on PATH (it fetches the pinned go1.27.3), cc, curl, tar, sha256sum)
 #     BENCH_PROFILE=<p>       smoke | standard (default) | full
 #     BENCH_SIZES=<list>      input prefixes (standard 1k,10k,100k,1M; full 1k..10M)
-#     BENCH_REPETITIONS=<n>   independent processes per library and size (standard 5)
+#     BENCH_REPETITIONS=<n>   independent processes per library and size (standard and full: 2)
 #     BENCH_SEED=<n> BENCH_FAMILIES=ipv4,ipv6 BENCH_LIBS=<ids> BENCH_DETAIL_SIZES=<list>
 #     BENCH_QUERIES=<n> BENCH_TARGET_MS=<ms> BENCH_LATENCY_SAMPLES=<n> BENCH_GOAMD64=v1
 #     BENCH_BUDGET=<s> (default 900) BENCH_TIMEOUT=<s> BENCH_MEM_LIMIT_MIB=<n> BENCH_OUT=<dir> BENCH_REPORT_ONLY=1
@@ -147,7 +147,7 @@ help: ## Show this help
 	@printf "\n$(C_CAT)Benchmark variables$(C_OFF) (every option is documented in the Makefile header)\n"
 	@printf "  $(C_CMD)bench$(C_OFF)            FILTER=<regex> BENCHES=lookup,update,snapshot SIMD=0 BENCH_TIME=<s>\n"
 	@printf "  $(C_CMD)bench-compare$(C_OFF)    SIZES=1k,...,5M FAMILIES=ipv4,ipv6 OPS=lookup,batch,exists\n"
-	@printf "  $(C_CMD)bench-compare-lib$(C_OFF) BENCH_PROFILE=smoke|standard|full BENCH_SIZES=1000,1000000 BENCH_REPETITIONS=5 BENCH_SEED=42\n"
+	@printf "  $(C_CMD)bench-compare-lib$(C_OFF) BENCH_PROFILE=smoke|standard|full BENCH_SIZES=1000,1000000 BENCH_REPETITIONS=2 BENCH_SEED=42\n"
 	@printf "                   DISTS=random,hits,misses THREADS=1,4,8 BATCH=256 BATCH_SWEEP=1,...,1024 HIT_RATIO=50%%\n"
 	@printf "                   ENGINES=default|all|<names> MEM_LIMIT_MIB=<n>|auto BUDGET=<s> TIMEOUT=<s>\n"
 	@printf "                   WINDOW_MS=<ms> REPS=<n> LAT_SAMPLES=<n> PIN=0 OUT=<dir> REPORT_ONLY=1\n"

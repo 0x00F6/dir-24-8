@@ -28,7 +28,7 @@ threads, latency and memory on one thread):
 make bench-compare-lib                          # standard profile
 make bench-compare-lib BENCH_PROFILE=smoke      # 1k and 10k prefixes, every library, under a minute
 make bench-compare-lib BENCH_PROFILE=full       # 1k .. 10M prefixes, two detail sizes
-make bench-compare-lib BENCH_SIZES=1000,10000,100000,1000000 BENCH_SEED=42 BENCH_REPETITIONS=5
+make bench-compare-lib BENCH_SIZES=1000,10000,100000,1000000 BENCH_SEED=42 BENCH_REPETITIONS=5   # more repetitions
 make bench-compare-lib BENCH_LIBS=dir-24-8,bart,libmaxminddb
 make bench-compare-lib BENCH_REPORT_ONLY=1      # rebuild HTML and CSV (and the README summary) from the JSON
 make bench-compare-lib BENCH_README=0           # measure without touching README.md
@@ -47,7 +47,7 @@ Dependencies, corpora, MMDB files and raw runner outputs are cached under
 | `BENCH_DETAIL_SIZES` | `100k` | sizes measured on every scenario (others: mixed only) |
 | `BENCH_FAMILIES` | `ipv4,ipv6` | |
 | `BENCH_SEED` | `42` | corpus seed |
-| `BENCH_REPETITIONS` | `5` | independent processes per (library, family, size) |
+| `BENCH_REPETITIONS` | `2` | independent processes per (library, family, size) |
 | `BENCH_QUERIES` | `1048576` | queries per scenario (power of two) |
 | `BENCH_TARGET_MS` | `40` | duration of one throughput measurement |
 | `BENCH_LATENCY_SAMPLES` | `50000` | individually timed lookups per latency measurement (p99.9 needs 100 000) |
@@ -65,8 +65,8 @@ Profiles (none is a cartesian product of every dimension):
 | Profile | Sizes | Detail size (all scenarios) | Repetitions | Queries | Latency samples |
 |---|---|---|---|---|---|
 | smoke | 1k, 10k | 10k | 1 | 16 384 | 4 096 |
-| standard | 1k, 10k, 100k, 1M | 100k | 5 | 1 048 576 | 50 000 (about 13 min here) |
-| full | 1k ... 10M (9 sizes) | 100k, 1M | 5 | 1 048 576 | 200 000 |
+| standard | 1k, 10k, 100k, 1M | 100k | 2 | 1 048 576 | 50 000 (about 13 min here with 5 repetitions) |
+| full | 1k ... 10M (9 sizes) | 100k, 1M | 2 | 1 048 576 | 200 000 |
 
 The size curves use the mixed scenario; hits, misses and locality are
 detailed at the detail sizes.

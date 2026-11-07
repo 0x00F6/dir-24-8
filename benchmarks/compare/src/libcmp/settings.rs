@@ -101,7 +101,7 @@ Run through `make bench-compare-lib`; every option is an environment variable:
   BENCH_PROFILE=smoke|standard|full   (default standard)
   BENCH_SIZES=1000,10000,100000,1000000  input prefixes per table (k/M suffixes accepted)
   BENCH_FAMILIES=ipv4,ipv6             BENCH_SEED=42
-  BENCH_REPETITIONS=5                  independent processes per (library, family, size)
+  BENCH_REPETITIONS=2                  independent processes per (library, family, size)
   BENCH_QUERIES=1048576                queries per scenario file (power of two)
   BENCH_TARGET_MS=40                   duration of one throughput measurement
   BENCH_LATENCY_SAMPLES=50000          individually timed lookups per latency measurement (p99.9 from 100000)
@@ -156,7 +156,7 @@ impl Settings {
                 sizes: vec![1_000, 10_000, 100_000, 1_000_000],
                 families: Family::ALL.to_vec(),
                 seed: 42,
-                repetitions: 5,
+                repetitions: 2,
                 threads: vec![1, 4, 8],
                 queries: 1 << 20,
                 target_ms: 40,
@@ -186,7 +186,7 @@ impl Settings {
                 ],
                 families: Family::ALL.to_vec(),
                 seed: 42,
-                repetitions: 5,
+                repetitions: 2,
                 threads: vec![1, 4, 8],
                 queries: 1 << 20,
                 target_ms: 150,
