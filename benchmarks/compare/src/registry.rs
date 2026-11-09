@@ -10,8 +10,8 @@ use crate::dataset::{Dataset, Family};
 use crate::engines::{
     BinTrie, DenseBitmap, HashLpmFx, HashLpmStd, HeadBin16, HeadBin18, HeadBin20, HeadBin24,
     IpNetworkTableEngine, IptrieLc, IptrieRadix, Patricia, PatriciaTreeCrate, Poptrie16, Poptrie18,
-    PrefixTrieEngine, Radix4, Radix8, RadixTrieCrate, RangeMapEngine, Roaring, SortedIntervals,
-    TreeBitmap, TreeBitmapCrate,
+    PrefixTrieEngine, Radix4, Radix8, RadixTrieCrate, RangeMapEngine, SortedIntervals, TreeBitmap,
+    TreeBitmapCrate,
 };
 
 type Run4 = fn(&Dataset<u32>, &RunCfg) -> RunResult;
@@ -145,7 +145,6 @@ pub fn catalog() -> Vec<Entry> {
         Entry::new::<Lpm<PrefixTrieEngine<u32>>, Lpm<PrefixTrieEngine<u128>>>(true, BOTH),
         Entry::new::<Lpm<SortedIntervals<u32>>, Lpm<SortedIntervals<u128>>>(true, BOTH),
         Entry::new::<Lpm<HashLpmFx<u32>>, Lpm<HashLpmFx<u128>>>(true, BOTH),
-        Entry::new::<Member<Roaring<u32>>, Member<Roaring<u128>>>(true, V4),
         Entry::new::<Ours<ScalarBatches>, Ours<ScalarBatches>>(true, BOTH),
         Entry::new::<Lpm<Patricia<u32>>, Lpm<Patricia<u128>>>(true, BOTH),
         Entry::new::<Lpm<RadixTrieCrate<u32>>, Lpm<RadixTrieCrate<u128>>>(true, BOTH),
@@ -240,7 +239,7 @@ mod tests {
         let names: Vec<&str> = c.iter().map(|e| e.info.name.as_str()).collect();
         assert_eq!(names[0], "dir-24-8");
         let defaults = c.iter().filter(|e| e.info.default).count();
-        assert_eq!(defaults, 13);
+        assert_eq!(defaults, 12);
         assert!(c.iter().take(defaults).all(|e| e.info.default));
         let mut sorted = names.clone();
         sorted.sort_unstable();
@@ -253,9 +252,9 @@ mod tests {
         for e in &c {
             assert!(!e.info.algorithm.is_empty(), "{}", e.info.name);
         }
-        assert_eq!(select(&[]).len(), 13);
+        assert_eq!(select(&[]).len(), 12);
         assert_eq!(select(&["all".into()]).len(), c.len());
         let s = select(&["default".into(), "iptrie-radix".into()]);
-        assert_eq!(s.len(), 14);
+        assert_eq!(s.len(), 13);
     }
 }

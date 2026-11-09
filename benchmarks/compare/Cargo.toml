@@ -2,8 +2,7 @@
 name = "dir-24-8-compare"
 version = "0.1.0"
 edition = "2024"
-# roaring 0.12 declares Rust 1.90 (the library itself stays at 1.89).
-rust-version = "1.90"
+rust-version = "1.89"
 publish = false
 description = "Reproducible comparison of dir-24-8 against other LPM / membership structures and Go, C and Rust libraries (latency, throughput, memory, threads)"
 
@@ -21,13 +20,11 @@ batch-simd = ["dir-24-8/batch-simd"]
 [dependencies]
 dir-24-8 = { path = "../.." }
 rustc-hash = "2"
-roaring = "0.12"
 prefix-trie = "0.10"
 ip_network_table-deps-treebitmap = "0.5"
 ip_network_table = "0.2"
 ip_network = "0.4"
 iptrie = "0.11"
-iprange = "0.6"
 patricia_tree = "0.10"
 radix_trie = "0.3"
 rangemap = "1.8"

@@ -27,7 +27,6 @@
 //! | `prefix-trie(0.10)` | crate `prefix-trie` `PrefixMap` (tree-bitmap style multibit trie) | `PrefixMap<Ipv4Net/Ipv6Net, RouteId>`, `get_lpm` | incremental | ipv4, ipv6 | lpm |
 //! | `treebitmap-crate(0.5)` | crate `ip_network_table-deps-treebitmap` `IpLookupTable` (tree bitmap) | `IpLookupTable<Ipv4Addr/Ipv6Addr, RouteId>`, `longest_match` | incremental | ipv4, ipv6 | lpm |
 //! | `bitmap-dense(2^32-bit)` | one bit per IPv4 address | `Vec<u64>` of 2^26 words (512 MiB, zeroed lazily mapped allocation) | rebuild | ipv4 | membership |
-//! | `roaring(0.12)` | crate `roaring` `RoaringBitmap` | `insert_range` per route then `optimize()` | rebuild | ipv4 | membership |
 //! | `radix_trie(0.3)` | generic radix trie (crate `radix_trie`) | prefixes as bit strings (one byte per bit), `get_ancestor_value` | incremental | ipv4, ipv6 | lpm |
 //! | `patricia_tree(0.10)` | generic PATRICIA radix tree (crate `patricia_tree`) | bit-string keys, `get_longest_common_prefix` | incremental | ipv4, ipv6 | lpm |
 //! | `iptrie-radix(0.11)` | IP radix tree (crate `iptrie`, `RTrieMap`) | root /0 = no-route marker, `lookup(address)` | incremental | ipv4, ipv6 | lpm |
@@ -62,7 +61,7 @@ mod testutil;
 // only their aliases are used inside this module.
 #[allow(unused_imports)]
 pub use bintrie::{BinTrie, HeadBin16, HeadBin18, HeadBin20, HeadBin24, HeadBinTrie};
-pub use bitmap::{DenseBitmap, Roaring};
+pub use bitmap::DenseBitmap;
 #[allow(unused_imports)]
 pub use external::{IpFamily, PrefixTrieEngine, TreeBitmapCrate};
 #[allow(unused_imports)]
@@ -287,15 +286,6 @@ pub fn catalog() -> Vec<EngineInfo> {
         updates: "rebuild",
         source: "own implementation of a dense address bitmap",
     });
-    v.push(EngineInfo {
-        name: membership_name::<Roaring>(),
-        algorithm: "Roaring bitmap (array / bitmap / run containers)",
-        config: "RoaringBitmap; insert_range per route, then optimize() (run-length containers \
-                 where smaller); contains"
-            .into(),
-        updates: "rebuild",
-        source: "crate roaring 0.12",
-    });
     let popular: [(String, &'static str, &str, &'static str, &'static str); 6] = [
         (
             lpm_name::<RadixTrieCrate<u32>>(),
@@ -365,7 +355,7 @@ mod tests {
     #[test]
     fn catalog_names_are_unique_and_complete() {
         let c = catalog();
-        assert_eq!(c.len(), 24);
+        assert_eq!(c.len(), 23);
         let mut names: Vec<&str> = c.iter().map(|e| e.name.as_str()).collect();
         names.sort_unstable();
         names.dedup();
@@ -388,7 +378,6 @@ mod tests {
             "prefix-trie(0.10)",
             "treebitmap-crate(0.5)",
             "bitmap-dense(2^32-bit)",
-            "roaring(0.12)",
             "radix_trie(0.3)",
             "patricia_tree(0.10)",
             "iptrie-radix(0.11)",

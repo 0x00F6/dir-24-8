@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # Regenerates the benchmark images of README.md (benchmarks/charts/*.png)
 # from the two tabs of the HTML report of `make bench-compare`:
-# captures with headless Chrome (site/charts.mjs), then stitching and palette
-# compression (site/pack_png.py). The flame graph (make flamegraph) is not
+# captures with headless Chrome (site/charts.mjs), then palette compression
+# (site/pack_png.py). The flame graph (make flamegraph) is not
 # touched. .github/workflows/pages.yml runs it for every version tag.
 #
 # usage: site/charts.sh [reports-dir] [out-dir]

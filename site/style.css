@@ -30,12 +30,15 @@ p{margin:0}
 .btn.primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);color:var(--accent-ink)}
 section{padding:56px 0}
 .kicker{font:500 .875rem/1.4 var(--font-mono);color:var(--kicker);margin-bottom:12px;letter-spacing:.02em}
-.lead{margin-top:16px;font-size:1.125rem;color:var(--text-2);max-width:62ch}
+p.lead{margin-top:16px;font-size:1.125rem;color:var(--text-2);max-width:62ch}
 .feats{display:grid;gap:16px;margin-top:32px}
 .feat{padding:20px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
 .feat p{margin-top:8px;color:var(--text-2)}
 .feat.lead-like{}
-.codes{display:grid;gap:16px;margin-top:32px}
+/* Code panes: each one as wide as its longest line, side by side when both
+   fit, stacked at full width otherwise; extra width is shared. */
+.codes{display:flex;flex-wrap:wrap;gap:16px;margin-top:32px}
+.codes>.pane{flex:1 0 auto;max-width:100%}
 .pane{margin:0;border:1px solid var(--line);border-radius:var(--radius);background:var(--code-bg);overflow:hidden}
 .pane figcaption{padding:10px 16px;border-bottom:1px solid var(--line);font:500 .875rem var(--font-mono);color:var(--text-2);background:var(--surface)}
 .pane pre{margin:0;padding:16px;overflow-x:auto;font:400 .9rem/1.6 var(--font-mono);color:var(--code-text)}
@@ -45,11 +48,9 @@ section{padding:56px 0}
 .points li{padding:14px 16px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface);color:var(--text-2)}
 .points strong{color:var(--text)}
 .video{margin:0}
+.how-grid>:only-child{grid-column:1/-1}
 .video video{display:block;width:100%;height:auto;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
 .video figcaption{margin-top:8px;color:var(--text-3);font-size:.9rem}
-.warning{margin-top:24px;padding:18px 20px;border:1px solid var(--warn-line);border-radius:var(--radius);background:var(--warn-bg)}
-.warning h3{display:flex;gap:10px;align-items:center;color:var(--warn)}
-.warning ul{margin:10px 0 0;padding-left:1.2rem;color:var(--text-2)}
 .reports{display:grid;gap:16px;margin-top:32px}
 .report{padding:24px;border:1px solid var(--line);border-radius:var(--radius);background:var(--surface)}
 .report h3 code{display:block;margin-top:6px;font-weight:500;color:var(--text-3)}
@@ -60,7 +61,6 @@ section{padding:56px 0}
 .links{display:flex;flex-wrap:wrap;gap:16px;align-items:center;margin-top:20px}
 .note{margin-top:20px;color:var(--text-3);font-size:.95rem;max-width:80ch}
 .foot{padding:32px 0 48px;border-top:1px solid var(--line);color:var(--text-3);font-size:.95rem}
-.icon{flex:none}
 @media (min-width:720px){
   .wrap{padding:0 32px}
   .feats{grid-template-columns:repeat(2,1fr)}
@@ -70,7 +70,6 @@ section{padding:56px 0}
   .hero{padding:88px 0 56px}
   section{padding:72px 0}
   .feats{grid-template-columns:repeat(3,1fr)}
-  .codes{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
   .how-grid{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
 }
 
@@ -105,7 +104,7 @@ section{padding:56px 0}
 /* Scene pages (11-13): top bar with the logo, illustrated hero. */
 .topbar{position:relative;z-index:2;border-bottom:1px solid var(--line);background:var(--bar-bg)}
 .bar{display:flex;flex-wrap:wrap;gap:12px 24px;align-items:center;justify-content:space-between;padding-top:14px;padding-bottom:14px}
-.logo-small{display:block;width:320px;max-width:70vw;height:auto}
+.logo-small{display:block;width:196px;max-width:70vw;height:auto}
 .bar nav{display:flex;flex-wrap:wrap;gap:8px 20px;align-items:center}
 .bar nav a:not(.btn){color:var(--text-2);text-decoration:none;font-weight:600;padding:10px 0}
 .bar nav a:not(.btn):hover{color:var(--text)}
@@ -146,6 +145,21 @@ section{padding:56px 0}
 .sc-torch-collar{stroke:var(--handle);stroke-width:32;stroke-linecap:round}
 .sc-line2{stroke:var(--accent-2)}
 .sc-arrow2{fill:var(--accent-2)}
+/* Hero scene, in a 10 s loop: Ferris walks the lens over the memory cells
+   and finds 203.0.113.7 in cell 0x2AB4. The lens shows the cells it covers,
+   magnified (.seeker-pan moves the copy back by the offset of .seeker).
+   Without motion, the scene stays on the found address. */
+.scene{--scene-loop:10s} /* ds-allow-hardcode token definition: one loop of the hero animation */
+@media (prefers-reduced-motion:no-preference){
+  .scene .seeker{animation:sc-seek var(--scene-loop) ease-in-out infinite}
+  .scene .seeker-pan{animation:sc-pan var(--scene-loop) ease-in-out infinite}
+  .scene .found,.scene .found-sign{animation:sc-found var(--scene-loop) ease-in-out infinite}
+}
+/* ds-allow-hardcode:start offsets in user units of the scene viewBox (cells 116 apart, rows 100 apart) */
+@keyframes sc-seek{0%,6%{transform:translate(-232px,-100px)}12%,18%{transform:translate(0,-100px)}27%,33%{transform:translate(-348px,0)}39%,45%{transform:translate(-232px,0)}51%,57%{transform:translate(-116px,0)}63%,90%{transform:translate(0,0)}100%{transform:translate(-232px,-100px)}}
+@keyframes sc-pan{0%,6%{transform:translate(232px,100px)}12%,18%{transform:translate(0,100px)}27%,33%{transform:translate(348px,0)}39%,45%{transform:translate(232px,0)}51%,57%{transform:translate(116px,0)}63%,90%{transform:translate(0,0)}100%{transform:translate(232px,100px)}}
+/* ds-allow-hardcode:end */
+@keyframes sc-found{0%,62%{opacity:0}66%,90%{opacity:1}94%,100%{opacity:0}}
 @media (min-width:1024px){
   .scene-grid.cols{grid-template-columns:minmax(0,5fr) minmax(0,7fr)}
   .hero-scene{padding:64px 0 40px}

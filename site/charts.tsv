@@ -5,9 +5,6 @@ candlestick-ipv4-lookup	Candlestick Percentile Rank — IPv4 Lookups	Candlestick
 candlestick-ipv6-lookup	Candlestick Percentile Rank — IPv6 Lookups	Candlestick percentile rank of IPv6 single lookups	100%
 throughput-ipv4-batch	IPv4 Batch Throughput	IPv4 batch throughput ranking	100%
 throughput-ipv6-batch	IPv6 Batch Throughput	IPv6 batch throughput ranking	100%
-batch-size-ipv4	IPv4 Batch Throughput vs Batch Size — SIMD vs Scalar	IPv4 batch throughput against the batch size, dir-24-8 with SIMD and scalar batches	80%
-scaling-ipv4-batch	IPv4 Batch Throughput vs Entries	IPv4 batch throughput against the number of entries	80%
-threads-ipv4-batch	IPv4 Batch Throughput vs Threads	IPv4 batch throughput with several threads	80%
 memory-ipv6	IPv6 Memory Footprint vs Entries	IPv6 memory footprint against the number of entries	80%
 lib-throughput-ipv4	Go, C and Rust Libraries — IPv4 LPM Lookup Throughput	IPv4 LPM lookup throughput of the Go, C and Rust libraries	100%
 lib-throughput-ipv6	Go, C and Rust Libraries — IPv6 LPM Lookup Throughput	IPv6 LPM lookup throughput of the Go, C and Rust libraries	100%

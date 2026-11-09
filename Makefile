@@ -18,8 +18,8 @@
 #                       structures: dir-24-8 against Rust LPM / membership structures, in process
 #                         -> results.json, results.csv
 #                       libraries: single-thread and multithreaded IPv4/IPv6 lookups of dir-24-8 against
-#                         go-cidranger (libp2p), cidranger (yl2chen), go-iptrie, bart (Go), prefix-trie,
-#                         iprange (Rust) and libmaxminddb (C), each in a native runner of its language
+#                         go-cidranger (libp2p), cidranger (yl2chen), go-iptrie, bart (Go), prefix-trie (Rust)
+#                         and libmaxminddb (C), each in a native runner of its language
 #                         -> libraries.json, libraries.csv
 #                         (needs go >= 1.21 on PATH (it fetches the pinned go1.27.3), cc, curl, tar, sha256sum)
 #     PARTS=<list>         structures,libraries or all (default all)

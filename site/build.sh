@@ -86,6 +86,11 @@ EOF
 for f in report.html results.json results.csv libraries.json libraries.csv; do
   [[ -f "$reports/$f" ]] && cp "$reports/$f" "$out/bench-compare/"
 done
+# The logo of the report leads to the home page of this site rather than
+# to the online one it points at elsewhere.
+if [[ -f "$out/bench-compare/report.html" ]]; then
+  sed -i 's|href="https://0x00f6.github.io/dir-24-8/" data-home|href="../" data-home|' "$out/bench-compare/report.html"
+fi
 
 CARD_STRUCTURES=$(card \
   'Rust structures <code>make bench-compare, structures tab</code>' \
@@ -103,7 +108,7 @@ CARD_STRUCTURES=$(card \
 
 CARD_LIBRARIES=$(card \
   'Go, C and Rust libraries <code>make bench-compare, libraries tab</code>' \
-  'dir-24-8 against bart, go-iptrie, both cidrangers (Go), libmaxminddb (C) and Rust crates, each in a native runner of its language: membership and LPM throughput, latency, memory per prefix.' \
+  'dir-24-8 against bart, go-iptrie, both cidrangers (Go), libmaxminddb (C) and prefix-trie (Rust), each in a native runner of its language: membership and LPM throughput, latency, memory per prefix.' \
   libraries libraries.json libraries.csv '
   .meta as $m
   | "    <dt>Run</dt><dd>\($m.started_unix | date) · \($m.duration_s | minutes) · <span class=\"status \(if $m.status == "complete" then "ok" elif $m.status == "partial" then "warn" else "bad" end)\">\($m.status | @html)</span></dd>",

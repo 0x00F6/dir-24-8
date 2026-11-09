@@ -65,6 +65,8 @@
   --w-note: 980px;
   --w-prose: 1040px;
   --w-tip: 380px;
+  --w-brand: 160px;
+  --brand-hover: 0.85;
   --w-tile: 190px;
   --w-cell-min: 260px;
   --w-cell-max: 520px;
@@ -85,6 +87,15 @@ h1 { font-size: var(--fs-h1); margin: 0 0 var(--sp-3); font-weight: 650; }
 h2 { font-size: var(--fs-h2); margin: var(--sp-15) 0 var(--sp-6); font-weight: 650; }
 h3 { font-size: var(--fs-h3); margin: 0 0 var(--sp-1); font-weight: 600; }
 .page-head { padding: var(--sp-14) 0 var(--sp-11); border-bottom: 1px solid var(--border); }
+/* Logo, then the title and its note: stacked on a phone, side by side from 640px. */
+.brand-row { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-9); }
+@media (min-width: 640px) { .brand-row { flex-direction: row; align-items: center; gap: var(--sp-13); } }
+.brand-text { min-width: 0; }
+.brand-text .sub { margin: 0; }
+.brand { display: inline-block; flex: none; border-radius: var(--r-md); }
+.brand img { display: block; width: var(--w-brand); max-width: 100%; height: auto; }
+.brand:hover img, .brand:active img { opacity: var(--brand-hover); }
+.brand:focus-visible { outline: var(--rule) solid var(--accent); outline-offset: var(--sp-3); }
 .sub { color: var(--text-secondary); margin: 0 0 var(--sp-9); }
 .chips { display: flex; flex-wrap: wrap; gap: var(--sp-4); }
 .chip { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-7); color: var(--text-secondary); font-size: var(--fs-sm); }

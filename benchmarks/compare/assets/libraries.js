@@ -727,7 +727,7 @@
       `A process is stopped after ${S.timeout_s} s (timeout) or when its resident memory exceeds the limit (${fmtBytes(R.meta.mem_limit_bytes)}); larger sizes are skipped when the memory scaled from the previous size would not fit. ` +
       `The measurement budget is ${S.budget_s ? S.budget_s + " s" : "unlimited"}; anything not run is listed with its reason.`);
     sec("Runners",
-      "Each library runs in a native runner of its language (Rust: prefix-trie, iprange, dir-24-8; Go: both cidrangers, go-iptrie, bart; C: libmaxminddb) that executes the lookup loop itself and prints JSON lines. " +
+      "Each library runs in a native runner of its language (Rust: prefix-trie, dir-24-8; Go: both cidrangers, go-iptrie, bart; C: libmaxminddb) that executes the lookup loop itself and prints JSON lines. " +
       "The orchestrator only starts processes and reads their output: no process, IPC, JSON or cgo crossing per lookup. Addresses are converted to each library's native type, tables built, files opened and buffers allocated before any timing. " +
       "Go: one module, one toolchain, the same flags for every library (CGO_ENABLED=0, -trimpath), GC left at its default (GOGC=100), GOMAXPROCS default; runtime.GC() runs between measurements, outside the timed sections.");
     sec("Throughput",

@@ -207,7 +207,6 @@ pub fn env() -> Env {
     let deps = lock_versions(&[
         "ipnet",
         "libc",
-        "roaring",
         "prefix-trie",
         "ip_network_table-deps-treebitmap",
         "rustc-hash",

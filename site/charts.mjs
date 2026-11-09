@@ -6,7 +6,7 @@
 //   CHROME=<path>  browser (default: google-chrome, google-chrome-stable,
 //                  chromium, chromium-browser)
 // Needs Node 22 or later (global WebSocket). site/charts.sh wraps it: it
-// stitches the full-report bands and compresses the images.
+// compresses the images.
 import { spawn } from "node:child_process";
 import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
@@ -33,11 +33,7 @@ const SHOTS = [
   { part: "structures", out: "candlestick-ipv6-lookup", element: "candle-card", clicks: [["Family", "IPv6"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
   { part: "structures", out: "throughput-ipv4-batch", element: "bars-card", clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
   { part: "structures", out: "throughput-ipv6-batch", element: "bars-card", clicks: [["Family", "IPv6"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
-  { part: "structures", out: "scaling-ipv4-batch", element: "line-throughput", width: 820, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"]] },
-  { part: "structures", out: "threads-ipv4-batch", element: "line-threads", width: 820, fit: true, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
-  { part: "structures", out: "batch-size-ipv4", element: "line-batch", width: 820, fit: true, legend: true, optional: true, clicks: [["Family", "IPv4"], ["Entries", "1M", "last"]] },
   { part: "structures", out: "memory-ipv6", element: "line-memory", width: 820, legend: true, clicks: [["Family", "IPv6"]] },
-  { part: "structures", out: "report-full", fullPage: true, tile: 4000, clicks: [["Family", "IPv4"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
   { part: "libraries", out: "lib-throughput-ipv4", element: "line-throughput", legend: true, clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
   { part: "libraries", out: "lib-throughput-ipv6", element: "line-throughput", legend: true, clicks: [["Family", "IPv6"], ["Operation", "LPM lookup"]] },
   { part: "libraries", out: "lib-candlestick-ipv4", element: "candle-card", clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
@@ -178,18 +174,6 @@ async function main() {
         const r = await evaluate(clickJs(shot.part, group, text, fallback || ""));
         if (r !== "ok") console.warn(`${shot.out}: filter ${group} / ${text}: ${r}`);
         await sleep(250);
-      }
-      if (shot.fullPage) {
-        const h = await evaluate("document.documentElement.scrollHeight");
-        const width = shot.width || WIDTH;
-        let n = 0;
-        for (let y = 0; y < h; y += shot.tile, n++) {
-          const clip = { x: 0, y, width, height: Math.min(shot.tile, h - y), scale: 1 };
-          const img = await send("Page.captureScreenshot", { format: "png", clip, captureBeyondViewport: true });
-          writeFileSync(join(outDir, `${shot.out}.part${String(n).padStart(2, "0")}.png`), Buffer.from(img.data, "base64"));
-        }
-        console.log(`${shot.out}: ${width}x${h} CSS px in ${n} bands`);
-        continue;
       }
       const box = await evaluate(boxJs(shot));
       if (!box) {

@@ -27,6 +27,27 @@ const STRUCTURES_JS: &str = include_str!("../assets/structures.js");
 const LIBRARIES_JS: &str = include_str!("../assets/libraries.js");
 /// Tabs.
 const PAGE_JS: &str = include_str!("../assets/page.js");
+/// Logo of the header (the one of the site), linked to the home page.
+const LOGO_PNG: &[u8] = include_bytes!("../../../site/assets/logo-dark.png");
+
+/// Standard base64 (RFC 4648, with padding), for the `data:` URI of the logo.
+fn base64(bytes: &[u8]) -> String {
+    const ABC: &[u8; 64] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+    let mut out = String::with_capacity(bytes.len().div_ceil(3) * 4);
+    for c in bytes.chunks(3) {
+        let n = (u32::from(c[0]) << 16)
+            | (u32::from(c.get(1).copied().unwrap_or(0)) << 8)
+            | u32::from(c.get(2).copied().unwrap_or(0));
+        for i in 0..4 {
+            if i <= c.len() {
+                out.push(ABC[((n >> (18 - 6 * i)) & 63) as usize] as char);
+            } else {
+                out.push('=');
+            }
+        }
+    }
+    out
+}
 
 /// The result documents of the report; `None` leaves a tab without results.
 #[derive(Default)]
@@ -75,13 +96,19 @@ fn standalone(
         assert!(out.contains(&tag), "template references {src}");
         out = out.replace(&tag, &format!("<script>\n{body}</script>"));
     }
+    let logo = r#"src="logo-dark.png""#;
+    assert!(out.contains(logo), "template references logo-dark.png");
+    out = out.replace(
+        logo,
+        &format!(r#"src="data:image/png;base64,{}""#, base64(LOGO_PNG)),
+    );
     for (placeholder, json) in data {
         assert_eq!(
             out.matches(placeholder).count(),
             1,
             "template holds {placeholder} once"
         );
-        // `<` only occurs in JSON strings, where `<` is the same
+        // `<` only occurs in JSON strings, where `\u003c` is the same
         // character: the script element cannot be closed or commented out.
         out = out.replacen(placeholder, &json.replace('<', "\\u003c"), 1);
     }
@@ -136,6 +163,19 @@ mod tests {
     use super::*;
 
     #[test]
+    fn base64_matches_rfc_4648() {
+        for (raw, enc) in [
+            ("", ""),
+            ("f", "Zg=="),
+            ("fo", "Zm8="),
+            ("foo", "Zm9v"),
+            ("foobar", "Zm9vYmFy"),
+        ] {
+            assert_eq!(base64(raw.as_bytes()), enc);
+        }
+    }
+
+    #[test]
     fn inlines_assets_and_data() {
         let parts = Parts {
             structures: Some(serde_json::json!({"reason": "</script><!-- x"})),
@@ -146,6 +186,7 @@ mod tests {
             assert!(!html.contains(&format!("\"{asset}\"")), "{asset} inlined");
         }
         assert!(!html.contains("__STRUCTURES_DATA__") && !html.contains("__LIBRARIES_DATA__"));
+        assert!(html.contains(r#"<img src="data:image/png;base64,iVBORw0KGgo"#));
         assert!(html.contains(r#"{"reason":"\u003c/script>\u003c!-- x"}"#));
         assert!(
             html.contains(r#"<script id="libraries-data" type="application/json">null</script>"#)

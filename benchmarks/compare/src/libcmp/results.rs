@@ -282,7 +282,7 @@ fn lib_entry(lib: &LibDef, index: usize, procs: &[Proc]) -> Value {
         _ => lib.id.to_string(),
     };
     let version = match lib.package {
-        "dir-24-8" | "prefix-trie" | "iprange" => Value::Null,
+        "dir-24-8" | "prefix-trie" => Value::Null,
         pkg => meta["modules"]
             .as_array()
             .and_then(|m| m.iter().find(|d| d["path"] == pkg))

@@ -1,6 +1,6 @@
 # Libraries part of `make bench-compare`: IPv4 / IPv6 lookups across libraries
 
-Compares the **lookups of IP addresses** of dir-24-8 with seven libraries,
+Compares the **lookups of IP addresses** of dir-24-8 with six libraries,
 each running in a native runner of its own language. It is the libraries
 part of `make bench-compare` (`PARTS=libraries` runs it alone): its results
 are the libraries tab of the standalone dark HTML report, next to the
@@ -93,7 +93,6 @@ detailed at the detail sizes.
 | `go-iptrie` | Go | [phemmer/go-iptrie](https://github.com/phemmer/go-iptrie) | v0.0.0-20240326174613-ba542f5282c9 | `Contains` | `Find` |
 | `bart` | Go | [gaissmai/bart](https://github.com/gaissmai/bart) | v0.30.0 | `Table[uint32].Contains` | `Table[uint32].Lookup` |
 | `prefix-trie` | Rust | [tiborschneider/prefix-trie](https://github.com/tiborschneider/prefix-trie) | 0.10 (`Cargo.lock`) | adapted: `get_lpm(host).is_some()` | `get_lpm(host /32 or /128)` |
-| `iprange` | Rust | [sticnarf/iprange-rs](https://github.com/sticnarf/iprange-rs) | 0.6 (`Cargo.lock`) | `contains` | N/A: set without associated values |
 | `libmaxminddb` | C | [maxmind/libmaxminddb](https://github.com/maxmind/libmaxminddb) | 1.14.1 (SHA-256 pinned) | `MMDB_lookup_sockaddr` + `found_entry` | + `MMDB_aget_value` (uint32 record id) |
 
 * **dir-24-8** runs its default configuration. Its single lookups and
@@ -120,8 +119,7 @@ detailed at the detail sizes.
   report. Runtime: `GOGC` default (100), `GOMAXPROCS` default.
 * `go-iptrie` stores IPv4 as IPv4-mapped IPv6 internally and stores values
   as `any`; `bart` is used as `Table[uint32]` (with values, the same table
-  for membership and lookup); `iprange` merges the networks (`simplify`):
-  its unit count (ranges kept) is reported next to the input prefixes.
+  for membership and lookup).
 * `libmaxminddb` reads an MMDB file written from the same corpus (next
   section).
 
@@ -283,7 +281,10 @@ Linux 7.0, Rust 1.98.1, Go 1.27.3, gcc 15.2. The machine was in use (load
 average 3.7 at the start, 12.0 at the end): the slowest and fastest
 repetitions of a measurement can differ by 2x, and the report marks
 overlapping ranges as ties. 1M input prefixes, mixed scenario (50 % hits),
-medians of 5 repetitions.
+medians of 5 repetitions. This run still measured `iprange` (membership
+only: a set of merged networks, without values, so no LPM lookup), since
+removed from the comparison: the totals above include it, the tables below
+leave it out.
 
 One thread (throughput, individually timed latency, memory), sorted by
 membership throughput:
@@ -292,7 +293,6 @@ membership throughput:
 |---|---:|---:|---:|---:|---:|---:|
 | bart | 61.9 | 6.0 | 181 / 1 052 | 38.2 MiB | 40 | 366 ms |
 | dir-24-8 (scalar) | 55.8 | 28.7 | 170 / 992 | 152.9 MiB | 160 | 760 ms |
-| iprange | 46.3 | N/A | N/A | 13.7 MiB | 14 | 167 ms |
 | dir-24-8 (AVX-512) | 29.6 | 16.1 | 150 / 731 | 152.8 MiB | 160 | 712 ms |
 | prefix-trie | 12.5 | 7.3 | 50 / 661 | 20.8 MiB | 22 | 218 ms |
 | go-iptrie | 11.0 | 0.8 | 1 263 / 6 302 | 143.4 MiB | 150 | 1 516 ms |
@@ -305,7 +305,6 @@ membership throughput:
 | bart | 12.4 | 2.6 | 390 / 2 294 | 102.5 MiB | 108 | 530 ms |
 | dir-24-8 (scalar) | 8.6 | 5.8 | 451 / 2 705 | 1 652.9 MiB | 1 733 | 4 812 ms |
 | dir-24-8 (AVX-512) | 7.4 | 5.7 | 471 / 2 645 | 1 652.8 MiB | 1 733 | 4 810 ms |
-| iprange | 4.9 | N/A | N/A | 76.5 MiB | 80 | 957 ms |
 | prefix-trie | 3.3 | 2.7 | 331 / 1 713 | 54.3 MiB | 57 | 422 ms |
 | go-iptrie | 3.3 | 0.7 | 1 213 / 5 411 | 152.6 MiB | 160 | 1 595 ms |
 | libmaxminddb | 1.5 | 1.4 | 701 / 3 186 | 110.1 MiB | 115 | 0.1 ms (MMDB written in 6.9 s) |
@@ -315,9 +314,8 @@ membership throughput:
 Multithreaded throughput (same total number of lookups for every thread
 count, workers sharing one index), sorted by IPv4 throughput at 8 threads:
 
-| Aggregate LPM lookup, M/s (membership for iprange) | IPv4 1T | 4T | 8T | 8T / 1T | IPv6 1T | 4T | 8T | 8T / 1T |
+| Aggregate LPM lookup, M/s | IPv4 1T | 4T | 8T | 8T / 1T | IPv6 1T | 4T | 8T | 8T / 1T |
 |---|---:|---:|---:|---:|---:|---:|---:|---:|
-| iprange (membership) | 46.3 | 180.1 | 338.8 | 7.3x | 4.9 | 22.8 | 42.7 | 8.8x |
 | dir-24-8 (scalar) | 28.7 | 82.6 | 149.9 | 5.2x | 5.8 | 20.6 | 32.9 | 5.6x |
 | prefix-trie | 7.3 | 39.8 | 93.1 | 12.8x | 2.7 | 11.4 | 24.0 | 8.9x |
 | dir-24-8 (AVX-512) | 16.1 | 62.6 | 91.6 | 5.7x | 5.7 | 20.6 | 30.6 | 5.4x |
@@ -349,12 +347,11 @@ What this run shows (and only for this run):
   runs last only a few milliseconds on a busy machine, so these ratios are
   approximate.
 * **Membership**: bart's `Contains` is the fastest on one thread (61.9 M/s
-  IPv4, 12.4 M/s IPv6), dir-24-8 (scalar) second; with 8 threads iprange's
-  merged ranges reach 338.8 M/s (IPv4).
+  IPv4, 12.4 M/s IPv6), dir-24-8 (scalar) second.
 * **Memory**: dir-24-8 trades memory for speed (160 B per IPv4 prefix,
   1.7 KiB per IPv6 prefix at 1M, mostly its 64 MiB roots and IPv6 groups;
-  the same for both backends); iprange, prefix-trie, libmaxminddb and bart
-  stay at 14-115 B per prefix. The original cidranger needs 2.4-2.8x the
+  the same for both backends); prefix-trie, libmaxminddb and bart stay at
+  22-115 B per prefix. The original cidranger needs 2.4-2.8x the
   memory of its libp2p fork and 3.6-3.7x its build time; both adapted LPM
   lookups allocate the list of containing networks.
 * **libmaxminddb**: opening the memory-mapped file takes 0.1 ms; writing

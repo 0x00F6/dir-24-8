@@ -1,19 +1,12 @@
-//! Membership engines (IPv4 only): "is the key covered by any route?".
+//! Membership engine (IPv4 only): "is the key covered by any route?".
 //!
-//! * [`DenseBitmap`] (`bitmap-dense(2^32-bit)`): one bit per IPv4 address,
-//!   `2^26` `u64` words (512 MiB) from a zeroed allocation (`calloc`, so the
-//!   pages are mapped lazily by the OS until written); each route sets its
-//!   bit range with whole-word fills; `contains` is a single bit test.
-//! * [`Roaring`] (`roaring(0.12)`): `roaring::RoaringBitmap`, one
-//!   `insert_range` per route followed by `optimize()` (the library's
-//!   run-length optimization, choosing the smallest container kind).
-//!
-//! For IPv6 both report "not applicable" (2^128 bits cannot be represented
-//! densely, and `RoaringBitmap` holds `u32` values only).
+//! [`DenseBitmap`] (`bitmap-dense(2^32-bit)`): one bit per IPv4 address,
+//! `2^26` `u64` words (512 MiB) from a zeroed allocation (`calloc`, so the
+//! pages are mapped lazily by the OS until written); each route sets its bit
+//! range with whole-word fills; `contains` is a single bit test. For IPv6 it
+//! reports "not applicable" (2^128 bits cannot be represented densely).
 
 use std::marker::PhantomData;
-
-use roaring::RoaringBitmap;
 
 use crate::core::{Key, MembershipEngine, Route};
 
@@ -103,54 +96,6 @@ impl<K: Key> MembershipEngine<K> for DenseBitmap<K> {
     }
 }
 
-/// `roaring(0.12)`.
-pub struct Roaring<K = u32> {
-    bitmap: RoaringBitmap,
-    _key: PhantomData<K>,
-}
-
-impl<K: Key> MembershipEngine<K> for Roaring<K> {
-    fn name() -> String {
-        "roaring(0.12)".into()
-    }
-
-    fn applicable(_routes: &[Route<K>]) -> Result<(), &'static str> {
-        if K::BITS == 32 {
-            Ok(())
-        } else {
-            Err("not applicable: RoaringBitmap holds u32 values (IPv4 only)")
-        }
-    }
-
-    fn build(routes: &[Route<K>]) -> Self {
-        let mut bitmap = RoaringBitmap::new();
-        if K::BITS == 32 {
-            for r in routes {
-                let (first, last) = v4_range(r);
-                bitmap.insert_range(first..=last);
-            }
-            bitmap.optimize();
-        }
-        Self {
-            bitmap,
-            _key: PhantomData,
-        }
-    }
-
-    #[inline]
-    fn contains(&self, key: K) -> bool {
-        K::BITS == 32 && self.bitmap.contains(key.to_u128() as u32)
-    }
-
-    /// Estimate: the portable serialized size of the bitmap (container
-    /// headers plus array / bitmap / run payloads), which tracks the heap
-    /// payload of its containers; `roaring` exposes no allocation size. The
-    /// harness also measures allocator bytes.
-    fn memory_bytes(&self) -> usize {
-        self.bitmap.serialized_size()
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -173,11 +118,5 @@ mod tests {
         assert!(b.contains(0) && b.contains(63) && !b.contains(1) && !b.contains(64));
         assert!(b.contains(u32::MAX) && b.contains(0xFFFF_FFC0) && !b.contains(0xFFFF_FFBF));
         assert_eq!(b.memory_bytes(), 512 << 20);
-    }
-
-    #[test]
-    fn roaring() {
-        membership_suite::<u32, Roaring<u32>>();
-        membership_suite::<u128, Roaring<u128>>();
     }
 }

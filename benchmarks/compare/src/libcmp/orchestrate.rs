@@ -155,7 +155,7 @@ fn env_info(repo: &Path, s: &Settings, load_start: Option<f64>) -> Value {
             "rust_target_features": e.compile_target_features, "rustflags": e.rustflags,
             "go": format!("{} (GOTOOLCHAIN pinned in go.mod; CGO_ENABLED=0, GOAMD64={}, -trimpath)", deps::GO_TOOLCHAIN, s.goamd64),
             "cc": cc, "cflags": deps::C_FLAGS, "libmaxminddb_cflags": format!("{} (+ upstream -O2 -g)", deps::MMDB_CFLAGS)},
-        "rust_crates": {"prefix-trie": locked_version(repo, "prefix-trie"), "iprange": locked_version(repo, "iprange"),
+        "rust_crates": {"prefix-trie": locked_version(repo, "prefix-trie"),
             "ipnet": locked_version(repo, "ipnet"), "dir-24-8": locked_version(repo, "dir-24-8")},
         "timestamp_unix": e.timestamp_unix})
 }
@@ -345,7 +345,7 @@ fn launch(l: &Launch, s: &Settings, deps: &Deps, run_dir: &Path, mem_limit: u64)
         watch_peak_rss: 0,
     };
     let exe: Result<PathBuf, String> = match l.lib.runner {
-        RunnerKind::Rust => std::env::current_exe().map_err(|e| e.to_string()),
+        RunnerKind::Rust => sys::self_exe().map_err(|e| e.to_string()),
         RunnerKind::Go => deps.go_runner.clone(),
         RunnerKind::C => deps.c_runner.clone(),
     };

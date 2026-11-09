@@ -178,3 +178,20 @@ pub fn loadavg() -> Option<f64> {
         .parse()
         .ok()
 }
+
+/// This executable, to start the measuring processes and the Rust runner:
+/// `/proc/self/exe` on Linux, which keeps designating the running binary
+/// even when its file is rebuilt or deleted during a run (a `cargo build`
+/// replaces it, and `current_exe()` then names a deleted file), so the
+/// children run exactly the code of the orchestrator; `current_exe()`
+/// elsewhere.
+pub fn self_exe() -> std::io::Result<std::path::PathBuf> {
+    #[cfg(target_os = "linux")]
+    {
+        let p = std::path::PathBuf::from("/proc/self/exe");
+        if p.exists() {
+            return Ok(p);
+        }
+    }
+    std::env::current_exe()
+}

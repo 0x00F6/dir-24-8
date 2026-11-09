@@ -267,7 +267,7 @@ enum Exit {
 /// `timeout`.
 fn spawn(exe: Option<&Path>, args: &[String], timeout: Duration) -> (Exit, String) {
     let exe = exe.map_or_else(
-        || std::env::current_exe().expect("current executable"),
+        || sys::self_exe().expect("current executable"),
         Path::to_path_buf,
     );
     let mut child = Command::new(exe)

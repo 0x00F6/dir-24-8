@@ -35,7 +35,7 @@ impl LibDef {
     }
 }
 
-pub const LIBS: [LibDef; 8] = [
+pub const LIBS: [LibDef; 7] = [
     LibDef {
         id: "dir-24-8",
         lang: "Rust",
@@ -119,20 +119,6 @@ pub const LIBS: [LibDef; 8] = [
         reference: false,
         variant_of: None,
         notes: "Binary prefix trie keyed by ipnet prefixes; queries are host prefixes built before timing.",
-    },
-    LibDef {
-        id: "iprange",
-        lang: "Rust",
-        repo: "https://github.com/sticnarf/iprange-rs",
-        runner: RunnerKind::Rust,
-        package: "iprange",
-        contains: "native",
-        lookup: "unsupported",
-        contains_api: "IpRange::contains(&addr)",
-        lookup_api: "N/A - set without associated values",
-        reference: false,
-        variant_of: None,
-        notes: "Set of networks merged by simplify(): stores fewer ranges than input prefixes; membership only.",
     },
     LibDef {
         id: "libmaxminddb",

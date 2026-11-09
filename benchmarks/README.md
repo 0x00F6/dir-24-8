@@ -5,7 +5,7 @@ Two Makefile targets, every option is a variable:
 | Command | What it does |
 |---|---|
 | `make bench` | Criterion benchmarks of the library (`benches/lookup.rs`, `benches/update.rs`); `BENCHES=snapshot` runs the snapshot measurements (`benches/snapshot.rs`) |
-| `make bench-compare` | two comparisons and one standalone HTML report with a tab each, `benchmarks/reports/report.html`: the **structures** part (below: dir-24-8 against Rust LPM and membership structures, `results.json`/`.csv`) and the **libraries** part (IPv4/IPv6 lookups, membership and LPM, of dir-24-8 against seven Go, C and Rust libraries, each in a native runner: throughput, latency, memory per prefix, `libraries.json`/`.csv`, [compare-lib/README.md](compare-lib/README.md)); `PARTS=structures` or `PARTS=libraries` runs one of them |
+| `make bench-compare` | two comparisons and one standalone HTML report with a tab each, `benchmarks/reports/report.html`: the **structures** part (below: dir-24-8 against Rust LPM and membership structures, `results.json`/`.csv`) and the **libraries** part (IPv4/IPv6 lookups, membership and LPM, of dir-24-8 against six Go, C and Rust libraries, each in a native runner: throughput, latency, memory per prefix, `libraries.json`/`.csv`, [compare-lib/README.md](compare-lib/README.md)); `PARTS=structures` or `PARTS=libraries` runs one of them |
 
 ```bash
 make bench                                   # every Criterion group
@@ -85,7 +85,6 @@ Every structure based on a radix tree or trie says so in its name
 | `prefix-trie(0.10)` | yes | Tree Bitmap style multibit trie (`PrefixMap`) | crate `prefix-trie` |
 | `sorted-intervals` | yes | disjoint LPM segments + binary search | own implementation |
 | `hashmap-lpm(fxhash)` | yes | one hash probe per present prefix length | own implementation |
-| `roaring(0.12)` | yes | `RoaringBitmap` of covered IPv4 addresses (exists only) | crate `roaring` |
 | `radix-tree(patricia)` | yes | radix tree: path-compressed binary radix trie (PATRICIA, as in BSD routing tables) | own implementation |
 | `radix_trie(0.3)` | yes | generic radix trie (16-way nibble nodes, path compression), prefixes stored as bit strings | crate `radix_trie` (~100 M downloads) |
 | `iptrie-lctrie(0.11)` | yes | LC-trie (level-compressed trie, the Linux kernel IPv4 FIB algorithm) | crate `iptrie` |
@@ -105,8 +104,8 @@ own memory; the harness measures every structure with its counting allocator.
 
 Adaptations, listed in the report: structures without a batch API are
 measured as a loop of single lookups; without an existence API as
-`lookup(ip).is_some()`; membership-only structures (`roaring`,
-`bitmap-dense`) answer only `exists`, for IPv4 only. Every LPM structure returns the same `Option<LookupMatch<'_, u32>>`
+`lookup(ip).is_some()`; the membership-only structure `bitmap-dense`
+answers only `exists`, for IPv4 only. Every LPM structure returns the same `Option<LookupMatch<'_, u32>>`
 (prefix + payload); competitors map an address to a route index and read the
 shared entry table, which is counted in their memory footprint.
 

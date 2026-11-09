@@ -1,5 +1,5 @@
 //! Native Rust runner of the libraries part (`bench-compare runner --plan
-//! <file>`): prefix-trie, iprange and dir-24-8. Same plan protocol,
+//! <file>`): prefix-trie and dir-24-8. Same plan protocol,
 //! same JSON-lines records and same measurement steps as the Go and C
 //! runners (see `benchmarks/compare-lib/README.md`).
 //!
@@ -177,8 +177,8 @@ fn read_prefixes(path: &Path) -> (u32, Vec<([u8; 16], u8, u32)>) {
 // ------------------------------------------------------------ families
 
 pub trait Fam: 'static + Sync {
-    type Addr: Copy + Sync + iprange::ToNetwork<Self::Net>;
-    type Net: Copy + Sync + prefix_trie::Prefix + iprange::IpNet;
+    type Addr: Copy + Sync;
+    type Net: Copy + Sync + prefix_trie::Prefix;
     const NUM: u32;
     fn addr(b: &[u8]) -> Self::Addr;
     fn net(b: &[u8; 16], len: u8) -> Self::Net;
@@ -297,43 +297,6 @@ impl<F: Fam> Lib<F> for PrefixTrie<F> {
     #[inline(always)]
     fn lookup(&self, q: &F::Net) -> u32 {
         self.map.get_lpm(q).map_or(0, |(_, &v)| v)
-    }
-}
-
-/// sticnarf/iprange-rs: `IpRange<Ipv4Net | Ipv6Net>`, a set of merged
-/// networks (no values).
-pub struct IpRangeSet<F: Fam> {
-    set: iprange::IpRange<F::Net>,
-}
-
-impl<F: Fam> Lib<F> for IpRangeSet<F> {
-    type Q = F::Addr;
-    const LOOKUP: bool = false;
-    fn info() -> Value {
-        json!({"id": "iprange", "crate": "iprange", "backend": "IpRange<Ipv4Net | Ipv6Net> (merged ranges in a trie)",
-            "contains": "native contains(&addr)", "lookup": "N/A: set without associated values"})
-    }
-    fn build(ps: &[([u8; 16], u8, u32)]) -> Self {
-        let mut set = iprange::IpRange::new();
-        for (a, l, _) in ps {
-            set.add(F::net(a, *l));
-        }
-        set.simplify();
-        Self { set }
-    }
-    fn units(&self) -> Option<(usize, &'static str)> {
-        Some((self.set.iter().count(), "networks after merge (simplify)"))
-    }
-    #[inline(always)]
-    fn query(a: F::Addr) -> F::Addr {
-        a
-    }
-    #[inline(always)]
-    fn contains(&self, q: &F::Addr) -> bool {
-        self.set.contains(q)
-    }
-    fn lookup(&self, _: &F::Addr) -> u32 {
-        0
     }
 }
 
@@ -716,8 +679,6 @@ pub fn main(plan: &Path) {
     match (p.lib.as_str(), fam) {
         ("prefix-trie", 4) => run::<V4, PrefixTrie<V4>>(&p),
         ("prefix-trie", 6) => run::<V6, PrefixTrie<V6>>(&p),
-        ("iprange", 4) => run::<V4, IpRangeSet<V4>>(&p),
-        ("iprange", 6) => run::<V6, IpRangeSet<V6>>(&p),
         ("dir-24-8", 4) => run::<V4, Dir248<V4>>(&p),
         ("dir-24-8", 6) => run::<V6, Dir248<V6>>(&p),
         (lib, f) => fail(format!("unknown library {lib:?} for family {f}")),
