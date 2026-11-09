@@ -1,7 +1,7 @@
-//! Results model and report writers: `results.json` (everything, the input
-//! of `--report-only`), `results.csv` (one row per measurement) and
-//! `report.html` (standalone page: the data is embedded, the charts are
-//! drawn by the embedded script).
+//! Results model and writers of the structures part: `results.json`
+//! (everything, the input of `--report-only`) and `results.csv` (one row per
+//! measurement). The structures tab of `report.html` is drawn from the same
+//! document ([`crate::page`]).
 
 use std::fmt::Write as _;
 use std::path::{Path, PathBuf};
@@ -135,10 +135,15 @@ impl Results {
     }
 }
 
+/// Result document of the structures part, next to the report.
+pub const JSON: &str = "results.json";
+/// One row per measurement of the structures part.
+pub const CSV: &str = "results.csv";
+
 pub fn write_json(out: &Path, r: &Results) -> std::io::Result<PathBuf> {
     std::fs::create_dir_all(out)?;
-    let p = out.join("results.json");
-    let tmp = out.join("results.json.tmp");
+    let p = out.join(JSON);
+    let tmp = out.join(format!("{JSON}.tmp"));
     std::fs::write(
         &tmp,
         serde_json::to_vec_pretty(r).map_err(std::io::Error::other)?,
@@ -147,19 +152,16 @@ pub fn write_json(out: &Path, r: &Results) -> std::io::Result<PathBuf> {
     Ok(p)
 }
 
-/// Writes every report; `json` also rewrites `results.json`.
+/// Writes `results.csv`; `json` also rewrites `results.json`.
 pub fn write_all(out: &Path, r: &Results, json: bool) -> std::io::Result<Vec<PathBuf>> {
     std::fs::create_dir_all(out)?;
     let mut files = Vec::new();
     if json {
         files.push(write_json(out, r)?);
     }
-    let csv = out.join("results.csv");
+    let csv = out.join(CSV);
     std::fs::write(&csv, to_csv(r))?;
     files.push(csv);
-    let html = out.join("report.html");
-    std::fs::write(&html, to_html(r))?;
-    files.push(html);
     Ok(files)
 }
 
@@ -242,41 +244,4 @@ pub fn to_csv(r: &Results) -> String {
         }
     }
     s
-}
-
-const TEMPLATE: &str = include_str!("../assets/report.html");
-
-/// Report assets: the dark theme stylesheet and the chart kit are shared
-/// with the `bench-compare-lib` report.
-pub const CSS: &str = include_str!("../assets/report.css");
-pub const KIT_JS: &str = include_str!("../assets/kit.js");
-const JS: &str = include_str!("../assets/report.js");
-
-/// Inlines the `<link rel="stylesheet" href="X">` and `<script src="X">`
-/// references of `template` (which can be opened as is next to its assets)
-/// and the JSON `data`, so that the report is a single offline file.
-pub fn standalone(template: &str, data: &str, css: &[(&str, &str)], js: &[(&str, &str)]) -> String {
-    // `</` cannot appear inside the embedded JSON script element.
-    let mut out = template.replacen("__DATA__", &data.replace("</", "<\\/"), 1);
-    for (href, body) in css {
-        let link = format!(r#"<link rel="stylesheet" href="{href}">"#);
-        assert!(out.contains(&link), "template references {href}");
-        out = out.replace(&link, &format!("<style>\n{body}</style>"));
-    }
-    for (src, body) in js {
-        let tag = format!(r#"<script src="{src}"></script>"#);
-        assert!(out.contains(&tag), "template references {src}");
-        out = out.replace(&tag, &format!("<script>\n{body}</script>"));
-    }
-    out
-}
-
-pub fn to_html(r: &Results) -> String {
-    let data = serde_json::to_string(r).expect("serializable");
-    standalone(
-        TEMPLATE,
-        &data,
-        &[("report.css", CSS)],
-        &[("kit.js", KIT_JS), ("report.js", JS)],
-    )
 }

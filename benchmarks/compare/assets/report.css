@@ -75,6 +75,7 @@
   --blur: 4px;
 }
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html { scroll-behavior: smooth; scroll-padding-top: var(--scroll-pad); }
 body { margin: 0; background: var(--page); color: var(--text-primary); font-family: var(--font); font-size: var(--fs-body); line-height: 1.5; }
 .viz-root { background: var(--page); color: var(--text-primary); min-height: 100vh; }
@@ -89,6 +90,21 @@ h3 { font-size: var(--fs-h3); margin: 0 0 var(--sp-1); font-weight: 600; }
 .chip { background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-md); padding: var(--sp-2) var(--sp-7); color: var(--text-secondary); font-size: var(--fs-sm); }
 .chip b { color: var(--text-primary); font-weight: 600; }
 .warn { margin-top: var(--sp-9); padding: var(--sp-6) var(--sp-9); border-radius: var(--r-md); border: 1px solid var(--warning); color: var(--text-primary); background: var(--warn-wash); }
+/* Tabs, one per comparison: phone first (stacked), side by side from 760px. */
+.parts { display: grid; grid-template-columns: minmax(0, 1fr); gap: var(--sp-9); margin-top: var(--sp-11); }
+@media (min-width: 760px) { .parts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.part-tab { display: flex; flex-direction: column; align-items: flex-start; gap: var(--sp-2); min-width: 0; padding: var(--sp-9) var(--sp-11); text-align: left; background: var(--surface-1); border: 1px solid var(--border); border-radius: var(--r-xl); color: var(--text-secondary); font-family: var(--font); font-size: var(--fs-sm); cursor: pointer; }
+.part-tab:hover { background: var(--surface-2); border-color: var(--axis); }
+.part-tab:active { background: var(--surface-2); }
+.part-tab:focus-visible { outline: var(--rule) solid var(--accent); outline-offset: 1px; }
+.part-tab[aria-selected="true"] { background: var(--surface-2); border-color: var(--accent); cursor: default; }
+.pt-title { color: var(--text-primary); font-size: var(--fs-h3); font-weight: 650; }
+.part-tab[aria-selected="false"] .pt-title { color: var(--text-secondary); }
+.pt-desc { color: var(--text-secondary); }
+.pt-status { color: var(--text-muted); }
+.part-head { padding: var(--sp-11) 0 var(--sp-6); border-bottom: 1px solid var(--border); }
+.fixed { color: var(--text-muted); font-size: var(--fs-sm); }
+.fixed b { color: var(--text-secondary); font-weight: 600; }
 .toc { border-bottom: 1px solid var(--border); background: var(--page); }
 .toc .wrap { display: flex; flex-wrap: wrap; gap: var(--sp-3) var(--sp-11); padding-top: var(--sp-6); padding-bottom: var(--sp-6); }
 .toc a { color: var(--text-secondary); text-decoration: none; font-size: var(--fs-base); }

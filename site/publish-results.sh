@@ -31,7 +31,7 @@ git worktree add --quiet --detach "$tree" "origin/$branch" || warn "cannot check
 mkdir -p "$tree/benchmarks/charts"
 cp benchmarks/charts/*.png "$tree/benchmarks/charts/"
 python3 site/readme_blocks.py copy README.md "$tree/README.md" \
-  bench-compare-lib:summary bench-compare:details benchmark-charts
+  bench-compare:summary bench-compare:details benchmark-charts
 
 cd "$tree"
 git add README.md benchmarks/charts

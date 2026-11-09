@@ -1,14 +1,19 @@
-# `make bench-compare-lib`: IPv4 / IPv6 lookups across libraries
+# Libraries part of `make bench-compare`: IPv4 / IPv6 lookups across libraries
 
 Compares the **lookups of IP addresses** of dir-24-8 with seven libraries,
-each running in a native runner of its own language, and writes a
-standalone dark HTML report plus JSON and CSV results:
+each running in a native runner of its own language. It is the libraries
+part of `make bench-compare` (`PARTS=libraries` runs it alone): its results
+are the libraries tab of the standalone dark HTML report, next to the
+structures tab, plus JSON and CSV results:
 
 ```text
-benchmarks/reports/bench-compare-lib.html   report (offline, interactive)
-benchmarks/reports/bench-compare-lib.json   every measurement and repetition
-benchmarks/reports/bench-compare-lib.csv    one row per measurement
+benchmarks/reports/report.html      report (offline, interactive), tab "Go, C and Rust libraries"
+benchmarks/reports/libraries.json   every measurement and repetition
+benchmarks/reports/libraries.csv    one row per measurement
 ```
+
+Every library name of the report carries its language, e.g. `bart (Go)`,
+`libmaxminddb (C)` or `dir-24-8 (Rust, scalar)`.
 
 Measured, for IPv4 and IPv6 separately (throughput with 1, 4 and 8 worker
 threads, latency and memory on one thread):
@@ -25,13 +30,14 @@ threads, latency and memory on one thread):
 ## Running it
 
 ```bash
-make bench-compare-lib                          # standard profile
-make bench-compare-lib BENCH_PROFILE=smoke      # 1k and 10k prefixes, every library, under a minute
-make bench-compare-lib BENCH_PROFILE=full       # 1k .. 10M prefixes, two detail sizes
-make bench-compare-lib BENCH_SIZES=1000,10000,100000,1000000 BENCH_SEED=42 BENCH_REPETITIONS=5   # more repetitions
-make bench-compare-lib BENCH_LIBS=dir-24-8,bart,libmaxminddb
-make bench-compare-lib BENCH_REPORT_ONLY=1      # rebuild HTML and CSV (and the README summary) from the JSON
-make bench-compare-lib BENCH_README=0           # measure without touching README.md
+make bench-compare                                  # both parts; this one with the standard profile
+make bench-compare PARTS=libraries                  # this part only (the structures tab keeps its results)
+make bench-compare PARTS=libraries LIB_PROFILE=smoke   # 1k and 10k prefixes, every library, under a minute
+make bench-compare PARTS=libraries LIB_PROFILE=full    # 1k .. 10M prefixes, two detail sizes
+make bench-compare PARTS=libraries LIB_SIZES=1000,10000,100000,1000000 LIB_SEED=42 LIB_REPETITIONS=5   # more repetitions
+make bench-compare PARTS=libraries LIB_LIBS=dir-24-8,bart,libmaxminddb
+make bench-compare REPORT_ONLY=1                    # rebuild the report and CSV (and the README summary) from the JSON
+make bench-compare README=0                         # measure without touching README.md
 ```
 
 Requirements: Linux (`/proc` is read for memory), `go` 1.21 or later on
@@ -40,25 +46,31 @@ the Go proxy, verified by `go.sum`), `cc`, `curl`, `tar`, `sha256sum`.
 Dependencies, corpora, MMDB files and raw runner outputs are cached under
 `target/bench-compare-lib/`.
 
+The options of this part are the `LIB_*` variables of `make bench-compare`
+(environment `BENCH_LIB_*`, flags `--lib-*` of `bench-compare --help`);
+`FAMILIES`, `THREADS`, `OUT`, `REPORT_ONLY` and `README` apply to both
+parts.
+
 | Variable | Default (standard) | Meaning |
 |---|---|---|
-| `BENCH_PROFILE` | `standard` | `smoke`, `standard` or `full` |
-| `BENCH_SIZES` | `1k,10k,100k,1M` | input prefixes per table (full: `1k,10k,50k,100k,250k,500k,1M,5M,10M`) |
-| `BENCH_DETAIL_SIZES` | `100k` | sizes measured on every scenario (others: mixed only) |
-| `BENCH_FAMILIES` | `ipv4,ipv6` | |
-| `BENCH_SEED` | `42` | corpus seed |
-| `BENCH_REPETITIONS` | `2` | independent processes per (library, family, size) |
-| `BENCH_QUERIES` | `1048576` | queries per scenario (power of two) |
-| `BENCH_TARGET_MS` | `40` | duration of one throughput measurement |
-| `BENCH_LATENCY_SAMPLES` | `50000` | individually timed lookups per latency measurement (p99.9 needs 100 000) |
-| `BENCH_LIBS` | all | subset of library ids |
-| `BENCH_BUDGET` | `900` | measurement budget in seconds (0: none) |
-| `BENCH_TIMEOUT` | `300` | limit per runner process |
-| `BENCH_MEM_LIMIT_MIB` | 80 % of `MemAvailable` | resident memory limit per runner process |
-| `BENCH_GOAMD64` | `v1` | `GOAMD64` of the Go build (the same for every Go library) |
-| `BENCH_OUT`, `BENCH_CACHE` | `benchmarks/reports`, `target/bench-compare-lib` | output and cache directories |
-| `BENCH_THREADS` | `1,4,8` | worker threads of the throughput measurements (mixed scenario; 1 is always included; smoke: `1,4`) |
-| `BENCH_README` | `auto` | regenerate the "Performance Summary" block of the repository `README.md` (between `<!-- bench-compare-lib:summary:start -->` and `<!-- bench-compare-lib:summary:end -->`): `auto` for complete runs of any profile but `smoke`, `1` always, `0` never; also applies to `BENCH_REPORT_ONLY=1` |
+| `LIB_PROFILE` | `standard` | `smoke`, `standard` or `full` |
+| `LIB_SIZES` | `1k,10k,100k,1M` | input prefixes per table (full: `1k,10k,50k,100k,250k,500k,1M,5M,10M`) |
+| `LIB_DETAIL_SIZES` | `100k` | sizes measured on every scenario (others: mixed only) |
+| `LIB_SEED` | `42` | corpus seed |
+| `LIB_REPETITIONS` | `2` | independent processes per (library, family, size) |
+| `LIB_QUERIES` | `1048576` | queries per scenario (power of two) |
+| `LIB_TARGET_MS` | `40` | duration of one throughput measurement |
+| `LIB_LATENCY_SAMPLES` | `50000` | individually timed lookups per latency measurement (p99.9 needs 100 000) |
+| `LIB_LIBS` | all | subset of library ids |
+| `LIB_BUDGET` | `900` | measurement budget in seconds (0: none) |
+| `LIB_TIMEOUT` | `300` | limit per runner process |
+| `LIB_MEM_LIMIT_MIB` | 80 % of `MemAvailable` | resident memory limit per runner process |
+| `LIB_GOAMD64` | `v1` | `GOAMD64` of the Go build (the same for every Go library) |
+| `LIB_CACHE` | `target/bench-compare-lib` | cache directory |
+| `FAMILIES` | `ipv4,ipv6` | shared with the structures part |
+| `THREADS` | the profile's: `1,4,8` (smoke: `1,4`) | worker threads of the throughput measurements (mixed scenario; 1 is always included); shared with the structures part |
+| `OUT` | `benchmarks/reports` | output directory, shared |
+| `README` | `auto` | regenerate the "Performance Summary" block of the repository `README.md` (between `<!-- bench-compare:summary:start -->` and `<!-- bench-compare:summary:end -->`): `auto` for complete runs of any profile but `smoke`, `1` always, `0` never; also applies to `REPORT_ONLY=1` |
 
 Profiles (none is a cartesian product of every dimension):
 
@@ -125,7 +137,7 @@ hash of every file matches. Every runner reads the same files:
   IPv6 /16 to /128, mostly /48 and /32), clustered so that networks nest,
   with host routes (/32, /128); no `/0` (default routes only in the edge
   cases); record id = index + 1 (unique, deterministic, non-zero);
-* scenarios of `BENCH_QUERIES` addresses, same order for every runner:
+* scenarios of `LIB_QUERIES` addresses, same order for every runner:
   `mixed` (50 % hits, shuffled), `hits` (a random address inside a random
   prefix), `misses` (verified absent by the oracle: near misses next to a
   prefix and uniform addresses), `local` (90 % of the queries from a hot set
@@ -199,7 +211,7 @@ process, IPC, JSON or cgo).
 * **Processes**: one fresh process per (library, family, size, repetition),
   one library loaded. Repetitions run in rounds by increasing size; the
   library order rotates between rounds and sizes. Each process is stopped
-  after `BENCH_TIMEOUT` (status `timeout`) or when its RSS exceeds the limit
+  after `LIB_TIMEOUT` (status `timeout`) or when its RSS exceeds the limit
   (`failed`); a size is skipped when the peak memory scaled from the
   previous size would not fit (`skipped`, with the estimate). Nothing is
   dropped silently: every planned measurement has an entry and a status
@@ -220,7 +232,7 @@ process, IPC, JSON or cgo).
   hits) is compared with the oracle's for the same queries; lookup errors
   (Go `error`, MMDB error codes) are counted apart from misses.
 * **Throughput**: an untimed calibration run (`warmup` lookups) sizes the
-  timed loop to about `BENCH_TARGET_MS` (at least 16 384 lookups); the loop walks the scenario's
+  timed loop to about `LIB_TARGET_MS` (at least 16 384 lookups); the loop walks the scenario's
   queries in order (wrapping). Lookups per second = exact count / monotonic
   wall time. The report shows the median of the repetitions with the
   slowest and the fastest; libraries whose range overlaps the fastest are
@@ -264,7 +276,7 @@ process, IPC, JSON or cgo).
 
 ## Results of the standard profile on this machine
 
-`make bench-compare-lib` (standard: 360 runner processes, 820 measurements
+The libraries part of `make bench-compare` (standard: 360 runner processes, 820 measurements
 plus 44 not applicable, status complete, 801 s of measurement), AMD Ryzen 7
 PRO 7840U (8 cores / 16 threads, Zen 4, AVX-512), 27 GB RAM, Ubuntu 26.04,
 Linux 7.0, Rust 1.98.1, Go 1.27.3, gcc 15.2. The machine was in use (load
@@ -348,7 +360,7 @@ What this run shows (and only for this run):
 * **libmaxminddb**: opening the memory-mapped file takes 0.1 ms; writing
   it (mmdbwriter, preparation) takes 4-7 s at 1M.
 
-The report (`benchmarks/reports/bench-compare-lib.html`) has every size,
+The libraries tab of the report (`benchmarks/reports/report.html#libraries`) has every size,
 scenario and thread count, the latency distributions and the
 per-repetition values.
 

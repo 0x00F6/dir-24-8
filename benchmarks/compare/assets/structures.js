@@ -1,16 +1,30 @@
 "use strict";
+// Structures tab of report.html (results.json): its element ids carry the
+// "structures-" prefix.
 (() => {
-  let R;
+  const $ = (id) => document.getElementById("structures-" + id);
+  const root = document.getElementById("structures");
+  let R = null;
   try {
-    R = JSON.parse(document.getElementById("data").textContent);
+    R = JSON.parse($("data").textContent);
   } catch {
     // The template opened directly: no results embedded.
-    document.getElementById("subtitle").textContent =
-      "Template without results: run `make bench-compare` (or `make bench-compare REPORT_ONLY=1`) to generate benchmarks/reports/report.html.";
+  }
+  if (!R) {
+    root.dataset.status = "none";
+    root.dataset.summary = "not measured";
+    $("subtitle").textContent =
+      "No results for this tab: run make bench-compare (PARTS=structures measures this tab only), or make bench-compare REPORT_ONLY=1 to redraw the report from benchmarks/reports/results.json.";
+    for (const id of ["toc", "filters", "main", "footer"]) $(id).hidden = true;
     return;
   }
   const S = R.meta.settings;
-  const $ = (id) => document.getElementById(id);
+  {
+    const bad = R.runs.filter((r) => r.status === "failed" || r.status === "invalid").length;
+    const day = new Date(R.meta.env.timestamp_unix * 1000).toISOString().slice(0, 10);
+    root.dataset.status = bad ? "bad" : R.meta.complete ? "ok" : "warn";
+    root.dataset.summary = `${bad ? bad + " failed runs" : R.meta.complete ? "complete" : "partial"} · ${day} · ${R.meta.env.cpu}`;
+  }
 
   const K = Kit({
     colorOf: (n) => colorOf(n),
@@ -118,7 +132,7 @@
 
   // ------------------------------------------------------------ filters
   function renderFilters() {
-    const row = clear(document.querySelector(".filters-row"));
+    const row = clear($("filters").querySelector(".filters-row"));
     row.append(
       segGroup("Family", S.families.map((f) => [f, FAMILY[f]]), () => state.family, (v) => {
         state.family = v;
@@ -154,6 +168,7 @@
 
   function renderLegend() {
     const lg = clear($("legend"));
+    lg.append(el("span", { class: "fixed" }, document.createTextNode("All in Rust, measured in process · click to show or hide:")));
     for (const e of ENG) {
       lg.append(
         el("button", {
@@ -854,16 +869,25 @@
     renderMemory();
     renderResults();
   }
+  // Charts are sized from their cards: a hidden tab is drawn when shown.
+  let stale = false;
+  function draw() {
+    stale = root.hidden;
+    if (!stale) renderAll();
+  }
   renderHeader();
   renderStatus();
   renderDatasets();
   renderMethod();
   renderEnv();
   renderCatalog();
-  renderAll();
+  draw();
+  root.addEventListener("tabshow", () => {
+    if (stale) draw();
+  });
   let rt = 0;
   window.addEventListener("resize", () => {
     clearTimeout(rt);
-    rt = setTimeout(renderAll, 150);
+    rt = setTimeout(draw, 150);
   });
 })();

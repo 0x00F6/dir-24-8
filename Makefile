@@ -1,6 +1,6 @@
 # dir-24-8 developer commands. `make` or `make help` lists them.
 #
-# Benchmarks have three targets; every option is a variable:
+# Benchmarks have two targets; every option is a variable:
 #
 #   make bench          Criterion benchmarks of the library
 #     FILTER=<regex>       Criterion filter (e.g. FILTER='^batch/ipv4')
@@ -14,10 +14,27 @@
 #     SNAPSHOT_PROFILES=<list> snapshot bench: XZ profiles, e.g. 9e,9e+sorted,6,9e+t4+b8 (default 9e,9e+sorted,6)
 #     SNAPSHOT_FAMILIES=<list> snapshot bench: ipv4,ipv6     SNAPSHOT_REPS=<n> repetitions (default 3)
 #
-#   make bench-compare  comparison with other structures + benchmarks/reports/report.html
+#   make bench-compare  two comparisons, one report: benchmarks/reports/report.html (a tab each)
+#                       structures: dir-24-8 against Rust LPM / membership structures, in process
+#                         -> results.json, results.csv
+#                       libraries: single-thread and multithreaded IPv4/IPv6 lookups of dir-24-8 against
+#                         go-cidranger (libp2p), cidranger (yl2chen), go-iptrie, bart (Go), prefix-trie,
+#                         iprange (Rust) and libmaxminddb (C), each in a native runner of its language
+#                         -> libraries.json, libraries.csv
+#                         (needs go >= 1.21 on PATH (it fetches the pinned go1.27.3), cc, curl, tar, sha256sum)
+#     PARTS=<list>         structures,libraries or all (default all)
+#    Shared by both parts:
+#     FAMILIES=<list>      ipv4,ipv6
+#     THREADS=<list>       worker threads (default 1,4,8; libraries: the profile's, always with 1)
+#     OUT=<dir>            reports directory (default benchmarks/reports)
+#     REPORT_ONLY=1        regenerate the CSV files and report.html from OUT/results.json and
+#                          OUT/libraries.json without measuring (a part without results is left out)
+#     README=auto|1|0      refresh the generated blocks of README.md (auto, the default: "Detailed results"
+#                          for complete runs of the default structures up to 1M entries or more, "Performance
+#                          Summary" for complete runs of the standard and full library profiles)
+#    Structures part:
 #     SIZES=<list>         entries per table (default 1k,10k,50k,100k,250k,500k,1M,2M,5M)
-#     FAMILIES=<list>      ipv4,ipv6            OPS=<list>      lookup,batch,exists
-#     DISTS=<list>         random,hits,misses   THREADS=<list>  1,4,8
+#     OPS=<list>           lookup,batch,exists      DISTS=<list>    random,hits,misses
 #     BATCH=<list>         addresses per batch call (default 256)
 #     BATCH_SWEEP=<list>   extra batch sizes for dir-24-8 (SIMD and scalar batches), first thread
 #                          count only, for the batch-size chart (default 1,4,8,16,32,64,128,512,1024;
@@ -28,28 +45,16 @@
 #     QUERIES=<n> VALIDATE=<n> SEED=<n> WARMUP_MS=<ms> WINDOW_MS=<ms> REPS=<n> LAT_SAMPLES=<n> LAT_BATCHES=<n>
 #     LAT_MAX_MS=<ms>      cap of one latency pass for slow structures (default 100)
 #     MEM_LIMIT_MIB=<n>    memory limit per structure in MiB, auto = 70% of MemAvailable (default: none)
-#     BUDGET=<s>           total time budget (default 3600, 0 = none)
+#     BUDGET=<s>           time budget of the part (default 3600, 0 = none)
 #     TIMEOUT=<s>          limit per measuring process (default 600)
 #     PIN=0                do not pin worker threads to cores
-#     OUT=<dir>            reports directory (default benchmarks/reports)
-#     REPORT_ONLY=1        regenerate the reports from OUT/results.json without measuring
-#     README=auto|1|0      refresh the "Detailed results" block of README.md (auto, the default:
-#                          complete runs of the default selection up to 1M entries or more)
-#
-#   make bench-compare-lib  single-thread IPv4/IPv6 lookups of dir-24-8 (default configuration)
-#                           against go-cidranger (libp2p), cidranger (yl2chen),
-#                           go-iptrie, bart (Go), prefix-trie, iprange (Rust) and libmaxminddb (C), each in its
-#                           own language -> benchmarks/reports/bench-compare-lib.{html,json,csv}
-#                           (needs go >= 1.21 on PATH (it fetches the pinned go1.27.3), cc, curl, tar, sha256sum)
-#     BENCH_PROFILE=<p>       smoke | standard (default) | full
-#     BENCH_SIZES=<list>      input prefixes (standard 1k,10k,100k,1M; full 1k..10M)
-#     BENCH_REPETITIONS=<n>   independent processes per library and size (standard and full: 2)
-#     BENCH_SEED=<n> BENCH_FAMILIES=ipv4,ipv6 BENCH_LIBS=<ids> BENCH_DETAIL_SIZES=<list>
-#     BENCH_QUERIES=<n> BENCH_TARGET_MS=<ms> BENCH_LATENCY_SAMPLES=<n> BENCH_GOAMD64=v1
-#     BENCH_BUDGET=<s> (default 900) BENCH_TIMEOUT=<s> BENCH_MEM_LIMIT_MIB=<n> BENCH_OUT=<dir> BENCH_REPORT_ONLY=1
-#     BENCH_README=auto|1|0   refresh the "Performance Summary" block of README.md (auto, the default:
-#                             complete runs of the standard and full profiles; also with BENCH_REPORT_ONLY=1)
-#     BENCH_THREADS=<list>    accepted, lookups are measured on one thread
+#    Libraries part:
+#     LIB_PROFILE=<p>      smoke | standard (default) | full: the defaults of every LIB_* option
+#     LIB_SIZES=<list>     input prefixes (standard 1k,10k,100k,1M; full 1k..10M)
+#     LIB_REPETITIONS=<n>  independent processes per library and size (standard and full: 2)
+#     LIB_SEED=<n> LIB_LIBS=<ids> LIB_DETAIL_SIZES=<list> LIB_QUERIES=<n> LIB_TARGET_MS=<ms>
+#     LIB_LATENCY_SAMPLES=<n> LIB_GOAMD64=v1 LIB_TIMEOUT=<s> LIB_MEM_LIMIT_MIB=<n> LIB_CACHE=<dir>
+#     LIB_BUDGET=<s>       time budget of the part (standard 900)
 #
 # Profiling and coverage (not benchmarks):
 #   make flamegraph      flame graph of every lookup method -> benchmarks/charts/lookup-flamegraph.svg
@@ -120,7 +125,11 @@ BENCH_ENV = $(call fwd,BENCH_TIME,BENCH_TIME) $(call fwd,V4_ROUTES,BENCH_V4_ROUT
             $(call fwd,V6_ROUTES,BENCH_V6_ROUTES) \
             $(call fwd,SNAPSHOT_SIZES,BENCH_SNAPSHOT_SIZES) $(call fwd,SNAPSHOT_PROFILES,BENCH_SNAPSHOT_PROFILES) \
             $(call fwd,SNAPSHOT_FAMILIES,BENCH_SNAPSHOT_FAMILIES) $(call fwd,SNAPSHOT_REPS,BENCH_SNAPSHOT_REPS)
-COMPARE_ENV = $(call fwd,SIZES,BENCH_SIZES) $(call fwd,FAMILIES,BENCH_FAMILIES) \
+# Options of the libraries part: LIB_<KEY> -> BENCH_LIB_<KEY>.
+LIB_KEYS = PROFILE SIZES REPETITIONS SEED QUERIES TARGET_MS LATENCY_SAMPLES DETAIL_SIZES LIBS BUDGET \
+           TIMEOUT MEM_LIMIT_MIB GOAMD64 CACHE
+COMPARE_ENV = $(call fwd,PARTS,BENCH_PARTS) $(foreach k,$(LIB_KEYS),$(call fwd,LIB_$(k),BENCH_LIB_$(k))) \
+              $(call fwd,SIZES,BENCH_SIZES) $(call fwd,FAMILIES,BENCH_FAMILIES) \
               $(call fwd,OPS,BENCH_OPS) $(call fwd,DISTS,BENCH_DISTS) $(call fwd,THREADS,BENCH_THREADS) \
               $(call fwd,BATCH,BENCH_BATCH) $(call fwd,BATCH_SWEEP,BENCH_BATCH_SWEEP) \
               $(call fwd,HIT_RATIO,BENCH_HIT_RATIO) \
@@ -135,7 +144,7 @@ COMPARE_ENV = $(call fwd,SIZES,BENCH_SIZES) $(call fwd,FAMILIES,BENCH_FAMILIES) 
               $(call fwd,README,BENCH_README)
 
 .PHONY: help check check-aarch64 build build-release fmt fmt-check lint test test-scalar test-simd \
-        coverage bench bench-compare bench-compare-lib flamegraph examples doc doc-open doc-crates \
+        coverage bench bench-compare flamegraph examples doc doc-open doc-crates \
         release publish clean ci
 
 ##@ Help
@@ -146,11 +155,11 @@ help: ## Show this help
 	  /^[a-zA-Z0-9_-]+:.*## / { printf "  $(C_CMD)%-16s$(C_OFF) %s\n", $$1, $$2 }' $(MAKEFILE_LIST)
 	@printf "\n$(C_CAT)Benchmark variables$(C_OFF) (every option is documented in the Makefile header)\n"
 	@printf "  $(C_CMD)bench$(C_OFF)            FILTER=<regex> BENCHES=lookup,update,snapshot SIMD=0 BENCH_TIME=<s>\n"
-	@printf "  $(C_CMD)bench-compare$(C_OFF)    SIZES=1k,...,5M FAMILIES=ipv4,ipv6 OPS=lookup,batch,exists\n"
-	@printf "  $(C_CMD)bench-compare-lib$(C_OFF) BENCH_PROFILE=smoke|standard|full BENCH_SIZES=1000,1000000 BENCH_REPETITIONS=2 BENCH_SEED=42\n"
-	@printf "                   DISTS=random,hits,misses THREADS=1,4,8 BATCH=256 BATCH_SWEEP=1,...,1024 HIT_RATIO=50%%\n"
-	@printf "                   ENGINES=default|all|<names> MEM_LIMIT_MIB=<n>|auto BUDGET=<s> TIMEOUT=<s>\n"
-	@printf "                   WINDOW_MS=<ms> REPS=<n> LAT_SAMPLES=<n> PIN=0 OUT=<dir> REPORT_ONLY=1\n"
+	@printf "  $(C_CMD)bench-compare$(C_OFF)    PARTS=structures,libraries FAMILIES=ipv4,ipv6 THREADS=1,4,8 OUT=<dir> REPORT_ONLY=1\n"
+	@printf "                   structures: SIZES=1k,...,5M OPS=lookup,batch,exists DISTS=random,hits,misses\n"
+	@printf "                   BATCH=256 BATCH_SWEEP=1,...,1024 HIT_RATIO=50%% ENGINES=default|all|<names>\n"
+	@printf "                   MEM_LIMIT_MIB=<n>|auto BUDGET=<s> TIMEOUT=<s> WINDOW_MS=<ms> REPS=<n> LAT_SAMPLES=<n> PIN=0\n"
+	@printf "                   libraries: LIB_PROFILE=smoke|standard|full LIB_SIZES=1k,1M LIB_REPETITIONS=2 LIB_LIBS=<ids>\n"
 	@printf "\nOther variables: TEST_THREADS, NIGHTLY, NO_COLOR\n"
 
 ##@ Build
@@ -207,16 +216,15 @@ coverage: ## Line, region and function coverage of the library, all features (ne
 bench: ## Library benchmarks (lookups, updates; snapshots with BENCHES=snapshot); see the variables below
 	$(BENCH_ENV) $(CARGO) bench -p dir-24-8 --features $(BENCH_FEATURES) $(foreach b,$(subst $(comma), ,$(BENCHES)),--bench $(b)) -- $(FILTER)
 
-bench-compare: ## Compare with other structures -> benchmarks/reports/{report.html,results.json,results.csv}
+bench-compare: ## Rust structures and Go/C/Rust libraries -> benchmarks/reports/report.html (+ JSON, CSV)
 	@# Scalar-batch build first (measures dir-24-8[scalar]), kept next to the default one.
 	$(CARGO) build --release -p dir-24-8-compare --no-default-features --bin bench-compare
 	cp -f $(COMPARE_BIN) $(COMPARE_BIN)-scalar
-	$(CARGO) build --release -p dir-24-8-compare --bin bench-compare
-	$(COMPARE_ENV) $(COMPARE_BIN)
-
-bench-compare-lib: ## IPv4/IPv6 lookups vs Go, C and Rust libraries -> benchmarks/reports/bench-compare-lib.{html,json,csv}
-	@s=$$(date +%s%N); $(CARGO) build --release -p dir-24-8-compare --bin bench-compare-lib; \
-	  e=$$(date +%s%N); BENCH_RUST_BUILD_MS=$$(( (e - s) / 1000000 )) $${CARGO_TARGET_DIR:-target}/release/bench-compare-lib
+	@# The default build is also the Rust runner of the libraries part, whose report shows its build time.
+	@s=$$(date +%s%N); echo "$(CARGO) build --release -p dir-24-8-compare --bin bench-compare"; \
+	  $(CARGO) build --release -p dir-24-8-compare --bin bench-compare; \
+	  e=$$(date +%s%N); echo "$(strip $(COMPARE_ENV) $(COMPARE_BIN))"; \
+	  BENCH_RUST_BUILD_MS=$$(( (e - s) / 1000000 )) $(COMPARE_ENV) $(COMPARE_BIN)
 
 ##@ Profiling
 flamegraph: ## Flame graph of every lookup method, IPv4 and IPv6 (perf + cargo-flamegraph) -> benchmarks/charts/lookup-flamegraph.svg

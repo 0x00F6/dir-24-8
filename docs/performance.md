@@ -24,11 +24,13 @@ here. CI runs the test suite natively on an AArch64 runner.
   iteration (independent back-to-back calls); `single-latency/*` makes each
   address depend on the previous result (latency chain). Batch throughputs
   are per address (amortized), the batch time is the Criterion time.
-* `make bench-compare` - the comparison harness (`benchmarks/compare`):
-  latency percentiles from isolated calls timed with the core cycle counter,
-  throughput with 1/4/8 threads, memory and build time over 1k-5M entries;
-  see `benchmarks/README.md`. Options are Makefile variables (`SIZES`,
-  `THREADS`, `ENGINES`, ...); there are no other benchmark targets.
+* `make bench-compare` - the comparison harness (`benchmarks/compare`),
+  one report with a tab per part. Structures part: latency percentiles from
+  isolated calls timed with the core cycle counter, throughput with 1/4/8
+  threads, memory and build time over 1k-5M entries; libraries part: Go, C
+  and Rust libraries in native runners. See `benchmarks/README.md`. Options
+  are Makefile variables (`PARTS`, `SIZES`, `THREADS`, `ENGINES`,
+  `LIB_PROFILE`, ...); there are no other benchmark targets.
 * For A/B decisions on this noisy laptop a min-of-7 harness was used
   (1 M lookups per repetition, 200 k IPv4 + 100 k IPv6 BGP-like routes,
   random hits), alternating the variants over several rounds.
@@ -122,7 +124,7 @@ costs about 1.5x the scalar time on cache-resident tables (harness, 100k
 routes: 28 ns vs 20 ns for hits, 3.7 vs 2.0 ns for misses).
 
 **Consequence**: on this CPU the scalar kernels are the fastest for single
-lookups (`bench-compare-lib` measured the same, 1.78-2.4x the throughput of
+lookups (the libraries comparison, then `bench-compare-lib`, measured the same, 1.78-2.4x the throughput of
 the AVX-512 single path). The SIMD single paths (one-lane gathers for
 IPv4, `vpshufb` root index for IPv6, NEON index math) were **removed**:
 single lookups and `exist` always run the scalar kernels, and the SIMD

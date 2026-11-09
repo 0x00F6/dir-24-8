@@ -1,5 +1,5 @@
-//! Native Rust runner of `bench-compare-lib` (`bench-compare-lib runner
-//! --plan <file>`): prefix-trie, iprange and dir-24-8. Same plan protocol,
+//! Native Rust runner of the libraries part (`bench-compare runner --plan
+//! <file>`): prefix-trie, iprange and dir-24-8. Same plan protocol,
 //! same JSON-lines records and same measurement steps as the Go and C
 //! runners (see `benchmarks/compare-lib/README.md`).
 //!
@@ -705,7 +705,7 @@ fn run<F: Fam, L: Lib<F>>(p: &Plan) {
     emit(json!({"type": "end", "hwm": sys::hwm()}));
 }
 
-/// Entry point of `bench-compare-lib runner --plan <file>`.
+/// Entry point of `bench-compare runner --plan <file>`.
 pub fn main(plan: &Path) {
     let p = read_plan(plan);
     let fam: u32 = {

@@ -1,5 +1,5 @@
 // Package corpus reads the language-neutral corpus files written by the
-// orchestrator (`bench-compare-lib`, Rust). The layout is documented in
+// orchestrator (`bench-compare`, libraries part, Rust). The layout is documented in
 // benchmarks/compare-lib/README.md:
 //
 //	header (32 bytes, little endian): magic[8], u32 version = 1,

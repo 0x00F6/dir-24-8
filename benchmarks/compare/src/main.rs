@@ -1,9 +1,14 @@
-//! `bench-compare`: reproducible comparison of dir-24-8 with other LPM and
-//! membership structures (latency, throughput, memory, build time, thread
-//! scaling) with JSON/CSV results and a standalone HTML report. See
-//! `benchmarks/README.md` and `bench-compare --help`.
+//! `bench-compare`: reproducible comparison of dir-24-8 in two parts, with
+//! JSON/CSV results per part and one standalone HTML report (`report.html`,
+//! a tab per part). See `benchmarks/README.md` and `bench-compare --help`.
 //!
-//! Orchestration: datasets are generated once per (family, size) and
+//! * structures: dir-24-8 against other LPM and membership structures
+//!   (latency, throughput, memory, build time, thread scaling), below;
+//! * libraries: dir-24-8 against Go, C and Rust libraries, each in a native
+//!   runner of its language ([`dir_24_8_compare::libcmp`]); this binary is
+//!   also its Rust runner (`bench-compare runner --plan <file>`).
+//!
+//! Orchestration of the structures part: datasets are generated once per (family, size) and
 //! cached; then each (size, family, structure) runs in its own process
 //! (memory isolation, `RLIMIT_DATA` limit, timeout), which builds the
 //! structure once and measures every operation x distribution x thread
@@ -11,7 +16,9 @@
 //! larger sizes are extrapolated from the smaller ones and doomed runs are
 //! reported as skipped instead of being attempted.
 
-use dir_24_8_compare::{adapter, bench, dataset, measure, options, registry, report, sys, timer};
+use dir_24_8_compare::{
+    adapter, bench, dataset, libcmp, measure, options, page, registry, report, sys, timer,
+};
 
 use std::collections::HashMap;
 use std::io::Read;
@@ -37,6 +44,12 @@ struct PrepareSpec {
 }
 
 fn main() {
+    // Rust runner of the libraries part, started by its orchestrator.
+    let args: Vec<String> = std::env::args().collect();
+    if args.len() == 4 && args[1] == "runner" && args[2] == "--plan" {
+        libcmp::runner::main(Path::new(&args[3]));
+        return;
+    }
     let o = options::parse();
     if let Some(spec) = &o.child {
         let result = o.result.as_deref().unwrap_or_else(|| options::usage());
@@ -52,29 +65,107 @@ fn main() {
         return;
     }
     if let Some(path) = &o.report_only {
-        let text = std::fs::read_to_string(path)
-            .unwrap_or_else(|e| panic!("cannot read {}: {e}", path.display()));
-        let r: report::Results = serde_json::from_str(&text).expect("valid results file");
-        let files = report::write_all(&o.out, &r, false).expect("writable output directory");
-        eprintln!("reports regenerated from {}:", path.display());
-        for f in files {
-            eprintln!("  {}", f.display());
-        }
-        refresh_readme(&o, &r);
+        report_only(&o, path);
         return;
     }
-    let entries = registry::select(&o.engines);
-    if entries.is_empty() {
-        eprintln!("no structure matches --engines {:?}", o.engines);
+    let mut failed = false;
+    if o.parts.structures || o.list {
+        let entries = registry::select(&o.engines);
+        if entries.is_empty() {
+            eprintln!("no structure matches --engines {:?}", o.engines);
+            std::process::exit(2);
+        }
+        if o.list {
+            print_plan(&o, &entries);
+            return;
+        }
+        failed |= orchestrate(&o, &entries) > 0;
+    }
+    if o.parts.libraries {
+        let doc = libcmp::orchestrate::run(lib_settings(&o));
+        eprintln!("report:");
+        page::refresh(&o.out);
+        failed |= doc["meta"]["status"] == "failed";
+    }
+    if failed {
+        std::process::exit(1);
+    }
+}
+
+/// Settings of the libraries part: its `--lib-*` / `BENCH_LIB_*` options and
+/// the shared families, thread counts, output directory and README mode.
+fn lib_settings(o: &Options) -> libcmp::settings::Settings {
+    let repo = Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
+    let repo = repo.canonicalize().unwrap_or(repo);
+    libcmp::settings::Settings::new(
+        &repo,
+        &libcmp::settings::Shared {
+            families: &o.families,
+            threads: o.threads_explicit.then_some(&o.threads[..]),
+            out: &o.out,
+            readme: &o.readme,
+            readme_file: &o.readme_file,
+            vars: &o.lib_vars,
+        },
+    )
+}
+
+/// `--report-only`: regenerates the CSV files, the README blocks and the
+/// report of the selected parts from their JSON results, without measuring;
+/// a part without results is left out of the report.
+fn report_only(o: &Options, structures: &Path) {
+    let mut parts = page::Parts::read(&o.out);
+    if o.parts.structures {
+        match std::fs::read_to_string(structures) {
+            Ok(text) => {
+                let r: report::Results = serde_json::from_str(&text).expect("valid results file");
+                let files =
+                    report::write_all(&o.out, &r, false).expect("writable output directory");
+                eprintln!("structures regenerated from {}:", structures.display());
+                for f in files {
+                    eprintln!("  {}", f.display());
+                }
+                refresh_readme(o, &r);
+                parts.structures = Some(serde_json::to_value(&r).expect("serializable"));
+            }
+            // Default path: the structures part was never measured here.
+            Err(e)
+                if e.kind() == std::io::ErrorKind::NotFound
+                    && structures == o.out.join(report::JSON) =>
+            {
+                eprintln!(
+                    "no structures results ({}): tab left empty",
+                    structures.display()
+                );
+            }
+            Err(e) => panic!("cannot read {}: {e}", structures.display()),
+        }
+    }
+    if o.parts.libraries {
+        match &parts.libraries {
+            Some(doc) => {
+                eprintln!(
+                    "libraries regenerated from {}:",
+                    o.out.join(libcmp::results::JSON).display()
+                );
+                libcmp::orchestrate::report_only(&lib_settings(o), doc);
+            }
+            None => eprintln!(
+                "no libraries results ({}): tab left empty",
+                o.out.join(libcmp::results::JSON).display()
+            ),
+        }
+    }
+    if parts.structures.is_none() && parts.libraries.is_none() {
+        eprintln!(
+            "nothing to regenerate in {}: run make bench-compare first",
+            o.out.display()
+        );
         std::process::exit(2);
     }
-    if o.list {
-        print_plan(&o, &entries);
-        return;
-    }
-    let failures = orchestrate(&o, &entries);
-    if failures > 0 {
-        std::process::exit(1);
+    match page::write(&o.out, &parts) {
+        Ok(p) => eprintln!("report:\n  {}", p.display()),
+        Err(e) => panic!("cannot write the report: {e}"),
     }
 }
 
@@ -144,8 +235,8 @@ fn child(spec: &str, result: &Path) {
     std::fs::write(result, serde_json::to_vec(&r).expect("serializable")).expect("result file");
 }
 
-/// Regenerates the "Detailed results" block of `README.md` when
-/// `BENCH_README` allows it; a failure is reported, not fatal.
+/// Regenerates the "Detailed results" block of `README.md` when `README`
+/// allows it; a failure is reported, not fatal.
 fn refresh_readme(o: &Options, r: &report::Results) {
     let path = &o.readme_file;
     if !dir_24_8_compare::readme::wanted(&o.readme, r) {
@@ -621,6 +712,7 @@ fn orchestrate(o: &Options, entries: &[registry::Entry]) -> usize {
     for f in files {
         eprintln!("  {}", f.display());
     }
+    page::refresh(&o.out);
     refresh_readme(o, &results);
     results
         .runs

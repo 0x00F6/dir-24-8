@@ -1,19 +1,20 @@
 name: Pages
 
 # Builds the GitHub Pages site: a landing page presenting the project, the
-# interactive reports of `make bench-compare` and `make bench-compare-lib`
-# and the API documentation (site/build.sh).
+# interactive report of `make bench-compare` (a tab per comparison: Rust
+# structures, Go/C/Rust libraries) and the API documentation (site/build.sh).
 #
 # Two modes:
 #
 # * full, for a version tag (`make release VERSION=X.Y.Z` pushes vX.Y.Z;
 #   semver pre-releases too) or a manual run (Actions > Pages > Run
-#   workflow): measures both benchmarks on this runner, refreshes the
+#   workflow): measures both comparisons on this runner, refreshes the
 #   benchmark section of README.md (charts, summary, detailed results) and
 #   commits it to master (site/publish-results.sh), then deploys;
 # * site, for a push to master that changes the site (paths below): reuses
-#   the reports of the latest release from the deployed site, rebuilds the
-#   page and the API docs and deploys, in a few minutes.
+#   the results of the latest release from the deployed site, redraws their
+#   report, rebuilds the page and the API docs and deploys, in a few
+#   minutes.
 #
 # Full mode skips the benchmarks when the source code they measure has not
 # changed: their reports are cached per source fingerprint (library,
@@ -60,7 +61,7 @@ env:
   CARGO_TERM_COLOR: always
   COMPARE_SIZES: "1k,10k,100k,1M"
   LIB_PROFILE: standard
-  BENCH_CACHE_VERSION: "1"
+  BENCH_CACHE_VERSION: "2"
   MODE: ${{ github.event_name == 'push' && github.ref_type == 'branch' && 'site' || 'full' }}
 
 jobs:
@@ -112,7 +113,7 @@ jobs:
             echo "measure=true" >> "$GITHUB_OUTPUT"
           fi
 
-      # Any go >= 1.21: bench-compare-lib fetches the toolchain pinned in go.mod.
+      # Any go >= 1.21: the libraries part fetches the toolchain pinned in go.mod.
       - uses: actions/setup-go@v5
         if: steps.plan.outputs.measure == 'true'
         with:
@@ -138,21 +139,17 @@ jobs:
           free -h
           cargo run --quiet --release --features batch-simd --example batch_kernel
 
-      # Thread counts follow the runner's CPUs; MEM_LIMIT_MIB=auto skips the
-      # sizes that would not fit in its memory. Failed or invalid runs are
-      # reported in the page instead of blocking it.
+      # Both parts, one after the other. Thread counts follow the runner's
+      # CPUs; MEM_LIMIT_MIB=auto skips the structure sizes that would not fit
+      # in its memory. Failed or invalid runs are reported in the page
+      # instead of blocking it.
       - name: make bench-compare
         if: steps.plan.outputs.measure == 'true'
         run: |
           threads="1,2,$(nproc)"
-          make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 README=1 \
+          make bench-compare SIZES="$COMPARE_SIZES" THREADS="$threads" MEM_LIMIT_MIB=auto BUDGET=3600 \
+            LIB_PROFILE="$LIB_PROFILE" README=1 \
             || echo "::warning::bench-compare reported failed or invalid runs (see its report)"
-
-      - name: make bench-compare-lib
-        if: steps.plan.outputs.measure == 'true'
-        run: |
-          make bench-compare-lib BENCH_PROFILE="$LIB_PROFILE" BENCH_THREADS="1,2,$(nproc)" BENCH_README=1 \
-            || echo "::warning::bench-compare-lib did not complete (see its report)"
 
       - id: complete
         name: Complete reports
@@ -161,7 +158,7 @@ jobs:
           ok=true
           jq -e '.meta.complete == true and ([.runs[] | select(.status == "failed" or .status == "invalid")] | length) == 0' \
             benchmarks/reports/results.json > /dev/null || ok=false
-          jq -e '.meta.status == "complete"' benchmarks/reports/bench-compare-lib.json > /dev/null || ok=false
+          jq -e '.meta.status == "complete"' benchmarks/reports/libraries.json > /dev/null || ok=false
           echo "complete=$ok" >> "$GITHUB_OUTPUT"
           [[ $ok == true ]] || echo "::warning::incomplete benchmark reports: not cached, the next run measures again"
       - name: Cache the benchmark reports
@@ -171,8 +168,8 @@ jobs:
           path: benchmarks/reports
           key: ${{ steps.fingerprint.outputs.key }}
 
-      # README.md now holds the new summary and detailed results (README=1,
-      # BENCH_README=1); the charts are captured from the new reports.
+      # README.md now holds the new summary and detailed results (README=1);
+      # the charts are captured from the new report.
       - name: Benchmark charts
         if: steps.plan.outputs.measure == 'true'
         run: site/charts.sh
@@ -181,19 +178,25 @@ jobs:
         if: steps.plan.outputs.measure == 'true'
         run: site/publish-results.sh
 
-      # Site mode: the reports of the latest release, as deployed.
-      - name: Reports of the latest release
+      # Site mode: the results of the latest release, as deployed, drawn by
+      # the report of this commit (CSV files included). Releases before the
+      # single report published the libraries results as
+      # bench-compare-lib/bench-compare-lib.json.
+      - name: Results of the latest release
         if: env.MODE == 'site'
         env:
           BASE_URL: ${{ steps.pages.outputs.base_url }}
         run: |
           mkdir -p benchmarks/reports
-          for f in bench-compare/report.html bench-compare/results.json bench-compare/results.csv \
-                   bench-compare-lib/bench-compare-lib.html bench-compare-lib/bench-compare-lib.json \
-                   bench-compare-lib/bench-compare-lib.csv; do
-            curl -fsSL "$BASE_URL/$f" -o "benchmarks/reports/${f#*/}" \
-              || echo "::warning::$f is not on the deployed site: its card will say no report"
-          done
+          get() { curl -fsSL "$BASE_URL/$1" -o "benchmarks/reports/$2" || { rm -f "benchmarks/reports/$2"; false; }; }
+          get bench-compare/results.json results.json \
+            || echo "::warning::no structures results on the deployed site: their card will say no report"
+          get bench-compare/libraries.json libraries.json \
+            || get bench-compare-lib/bench-compare-lib.json libraries.json \
+            || echo "::warning::no libraries results on the deployed site: their card will say no report"
+          if compgen -G 'benchmarks/reports/*.json' > /dev/null; then
+            BENCH_REPORT_ONLY=1 BENCH_README=0 cargo run --quiet --release -p dir-24-8-compare --bin bench-compare
+          fi
 
       - name: API documentation
         run: cargo doc -p dir-24-8 --all-features --no-deps

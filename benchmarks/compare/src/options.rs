@@ -2,7 +2,9 @@
 //!
 //! Every option has a `--flag` and a `BENCH_*` environment variable (the
 //! Makefile forwards its variables through the environment). Lists are
-//! comma separated.
+//! comma separated. The options of the libraries part are `--lib-<key>` /
+//! `BENCH_LIB_<KEY>` (see [`crate::libcmp::settings::KEYS`]); the families,
+//! thread counts, output directory and README mode apply to both parts.
 
 use std::path::PathBuf;
 
@@ -32,13 +34,49 @@ pub fn parse_mem_limit(s: &str) -> Option<MemLimit> {
 
 pub const DEFAULT_SIZES: &str = "1k,10k,50k,100k,250k,500k,1M,2M,5M";
 
+/// The two comparisons of `bench-compare`, each a tab of `report.html`.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct Parts {
+    /// dir-24-8 against Rust LPM and membership structures, in process
+    /// (`results.json`).
+    pub structures: bool,
+    /// dir-24-8 against Go, C and Rust libraries, each in a native runner
+    /// (`libraries.json`, [`crate::libcmp`]).
+    pub libraries: bool,
+}
+
+/// `structures`, `libraries` or both (`all`), comma separated.
+pub fn parse_parts(s: &str) -> Option<Parts> {
+    let mut p = Parts {
+        structures: false,
+        libraries: false,
+    };
+    for x in list(s) {
+        match x.as_str() {
+            "structures" => p.structures = true,
+            "libraries" => p.libraries = true,
+            "all" => {
+                p.structures = true;
+                p.libraries = true;
+            }
+            _ => return None,
+        }
+    }
+    (p.structures || p.libraries).then_some(p)
+}
+
 #[derive(Clone, Debug)]
 pub struct Options {
+    /// Comparisons to measure (`--report-only`: to regenerate).
+    pub parts: Parts,
     pub sizes: Vec<usize>,
     pub families: Vec<Family>,
     pub ops: Vec<Op>,
     pub dists: Vec<Dist>,
     pub threads: Vec<usize>,
+    /// `--threads` / `BENCH_THREADS` was given: the libraries part uses it
+    /// instead of its profile's thread counts.
+    pub threads_explicit: bool,
     pub batch: Vec<usize>,
     /// Extra batch sizes for structures with a native batch API (dir-24-8),
     /// measured with the first thread count only (batch-size chart).
@@ -67,7 +105,12 @@ pub struct Options {
     pub readme: String,
     /// The repository `README.md` whose "Detailed results" block is regenerated.
     pub readme_file: PathBuf,
+    /// Regenerate the reports without measuring; the structures results are
+    /// read from this file (default `OUT/results.json`), the libraries
+    /// results from `OUT/libraries.json`.
     pub report_only: Option<PathBuf>,
+    /// `--lib-<key> VALUE` flags as `(BENCH_LIB_<KEY>, VALUE)`.
+    pub lib_vars: Vec<(String, String)>,
     pub list: bool,
     /// Internal: measure one structure (JSON `RunCfg`).
     pub child: Option<String>,
@@ -80,12 +123,29 @@ pub struct Options {
 const USAGE: &str = "\
 usage: bench-compare [options]
 
-Matrix (comma-separated lists):
-  --sizes LIST        entries per table          (BENCH_SIZES, default 1k,10k,50k,100k,250k,500k,1M,2M,5M)
+Two comparisons, one report (OUT/report.html, a tab each):
+  structures   dir-24-8 against Rust LPM and membership structures, in process -> results.json/.csv
+  libraries    dir-24-8 against Go, C and Rust libraries, each in a native runner of its language
+               -> libraries.json/.csv (needs go >= 1.21 on PATH, cc, curl, tar, sha256sum)
+  --parts LIST        structures,libraries or all (BENCH_PARTS, default all)
+
+Shared by both parts:
   --families LIST     ipv4,ipv6                  (BENCH_FAMILIES)
+  --threads LIST      worker threads             (BENCH_THREADS, default 1,4,8; libraries: the profile's)
+  --out DIR           reports directory (BENCH_OUT, default benchmarks/reports)
+  --readme MODE       refresh the generated blocks of README.md: auto, 1 or 0 (BENCH_README, default
+                      auto: complete runs of the default structures up to 1M entries or more for the
+                      Detailed results; complete runs of the standard and full library profiles for the
+                      Performance Summary)
+  --report-only [F]   regenerate the reports without measuring: structures from F (default
+                      OUT/results.json), libraries from OUT/libraries.json; a part without results is
+                      left out
+  --list              print the plan of the structures part and exit
+
+Structures matrix (comma-separated lists):
+  --sizes LIST        entries per table          (BENCH_SIZES, default 1k,10k,50k,100k,250k,500k,1M,2M,5M)
   --ops LIST          lookup,batch,exists        (BENCH_OPS)
   --dists LIST        random,hits,misses         (BENCH_DISTS)
-  --threads LIST      worker threads             (BENCH_THREADS, default 1,4,8)
   --batch LIST        addresses per batch call   (BENCH_BATCH, default 256)
   --batch-sweep LIST  extra batch sizes for native batch APIs (dir-24-8, SIMD and scalar), first
                       thread count only; `none` disables (BENCH_BATCH_SWEEP, default
@@ -97,7 +157,7 @@ Matrix (comma-separated lists):
                       (BENCH_VALIDATE, default 131072)
   --seed N            data seed                  (BENCH_SEED)
 
-Measurement:
+Structures measurement:
   --warmup-ms N       warm-up / calibration per operation and distribution (BENCH_WARMUP_MS, default 20)
   --window-ms N       target duration of one timed repetition (BENCH_WINDOW_MS, default 10)
   --reps N            timed repetitions per configuration (BENCH_REPS, default 5)
@@ -107,19 +167,30 @@ Measurement:
                       calls (BENCH_LAT_MAX_MS, default 100)
   --no-pin            do not pin worker threads to cores (BENCH_PIN=0)
 
-Limits:
+Structures limits:
   --mem-limit-mib N   memory limit per structure in MiB, `auto` = 70% of MemAvailable, 0 = none
                       (BENCH_MEM_LIMIT_MIB, default none: every size is attempted)
   --budget S          total time budget in seconds, 0 = none (BENCH_BUDGET, default 3600)
   --timeout S         limit per measuring process in seconds (BENCH_TIMEOUT, default 600)
 
-Output:
-  --out DIR           reports directory (BENCH_OUT, default benchmarks/reports)
   --cache DIR         dataset cache (BENCH_CACHE, default target/bench-compare/data)
-  --readme MODE       refresh the Detailed results block of README.md: auto (complete runs of the
-                      default selection up to 1M entries or more), 1 or 0 (BENCH_README, default auto)
-  --report-only [F]   regenerate the reports from F (default OUT/results.json), no measurement
-  --list              print the plan and exit
+
+Libraries part (--lib-<key> VALUE or BENCH_LIB_<KEY>; LIB_<KEY> in the Makefile):
+  --lib-profile P            smoke | standard | full (default standard): every default below
+  --lib-sizes LIST           input prefixes (standard 1k,10k,100k,1M; full 1k..10M; smoke 1k,10k)
+  --lib-repetitions N        independent processes per library, family and size (standard, full: 2)
+  --lib-seed N               corpus seed (default 42)
+  --lib-queries N            queries per scenario file, power of two (default 1048576)
+  --lib-target-ms N          duration of one throughput measurement (standard 40)
+  --lib-latency-samples N    individually timed lookups per latency measurement (standard 50000)
+  --lib-detail-sizes LIST    sizes measured on every scenario: hits, misses, mixed, local (standard 100k)
+  --lib-libs LIST            subset of libraries (default: all)
+  --lib-budget S             measurement budget in seconds, 0 = none (standard 900)
+  --lib-timeout S            limit per runner process in seconds (standard 300)
+  --lib-mem-limit-mib N      RSS limit per runner process (default: 80% of MemAvailable)
+  --lib-goamd64 V            GOAMD64 of the Go build, the same for every Go library (default v1)
+  --lib-cache DIR            corpora, MMDB files, dependencies, raw runner outputs
+                             (default target/bench-compare-lib)
 ";
 
 pub fn usage() -> ! {
@@ -209,11 +280,16 @@ pub fn parse() -> Options {
         })
     };
     let mut o = Options {
+        parts: Parts {
+            structures: true,
+            libraries: true,
+        },
         sizes: Vec::new(),
         families: Vec::new(),
         ops: Vec::new(),
         dists: Vec::new(),
         threads: Vec::new(),
+        threads_explicit: env("BENCH_THREADS").is_some(),
         batch: Vec::new(),
         batch_sweep: Vec::new(),
         engines: env("BENCH_ENGINES").map(|s| list(&s)).unwrap_or_default(),
@@ -239,11 +315,29 @@ pub fn parse() -> Options {
         cache: env("BENCH_CACHE")
             .map_or_else(|| root().join("target/bench-compare/data"), PathBuf::from),
         report_only: None,
+        lib_vars: Vec::new(),
         list: false,
         child: None,
         prepare: None,
         result: None,
     };
+    // Options of the former `bench-compare-lib`, now `LIB_*` (`BENCH_LIB_*`).
+    for old in [
+        "PROFILE",
+        "REPETITIONS",
+        "LIBS",
+        "DETAIL_SIZES",
+        "TARGET_MS",
+        "LATENCY_SAMPLES",
+        "GOAMD64",
+    ] {
+        if env(&format!("BENCH_{old}")).is_some() {
+            eprintln!(
+                "bench-compare: warning: BENCH_{old} is ignored, the libraries part reads LIB_{old} (BENCH_LIB_{old})"
+            );
+        }
+    }
+    let mut parts = env("BENCH_PARTS").unwrap_or_else(|| "all".into());
     let mut sizes = env("BENCH_SIZES").unwrap_or_else(|| DEFAULT_SIZES.into());
     let mut families = env("BENCH_FAMILIES").unwrap_or_else(|| "ipv4,ipv6".into());
     let mut ops = env("BENCH_OPS").unwrap_or_else(|| "lookup,batch,exists".into());
@@ -266,11 +360,15 @@ pub fn parse() -> Options {
                 .unwrap_or_else(|| fail(format!("{a} needs a value")))
         };
         match a {
+            "--parts" => parts = val(),
             "--sizes" => sizes = val(),
             "--families" => families = val(),
             "--ops" => ops = val(),
             "--dists" => dists = val(),
-            "--threads" => threads = val(),
+            "--threads" => {
+                threads = val();
+                o.threads_explicit = true;
+            }
             "--batch" => batch = val(),
             "--batch-sweep" => batch_sweep = val(),
             "--engines" => o.engines = list(&val()),
@@ -304,7 +402,18 @@ pub fn parse() -> Options {
             "--child" => o.child = Some(val()),
             "--prepare" => o.prepare = Some(val()),
             "--result" => o.result = Some(PathBuf::from(val())),
-            "-h" | "--help" => usage(),
+            "-h" | "--help" => {
+                print!("{USAGE}");
+                std::process::exit(0)
+            }
+            lib if lib.starts_with("--lib-") => {
+                let key = lib["--lib-".len()..].to_ascii_uppercase().replace('-', "_");
+                if !crate::libcmp::settings::KEYS.contains(&key.as_str()) {
+                    fail(format!("unknown argument {a}"));
+                }
+                let v = val();
+                o.lib_vars.push((format!("BENCH_LIB_{key}"), v));
+            }
             // `cargo bench`/`cargo run` may forward this one.
             "--bench" => {}
             _ => fail(format!("unknown argument {a}")),
@@ -317,6 +426,11 @@ pub fn parse() -> Options {
         } else {
             PathBuf::from(v)
         }
+    });
+    o.parts = parse_parts(&parts).unwrap_or_else(|| {
+        fail(format!(
+            "--parts / BENCH_PARTS: structures, libraries or all, not {parts:?}"
+        ))
     });
     o.readme = o.readme.trim().to_string();
     if !matches!(o.readme.as_str(), "auto" | "1" | "0") {
@@ -376,6 +490,25 @@ mod tests {
             assert_eq!(size_label(parse_size(s).unwrap()), s);
         }
         assert_eq!(size_label(1234), "1234");
+    }
+
+    #[test]
+    fn parts() {
+        let both = Parts {
+            structures: true,
+            libraries: true,
+        };
+        assert_eq!(parse_parts("all"), Some(both));
+        assert_eq!(parse_parts("structures,libraries"), Some(both));
+        assert_eq!(
+            parse_parts("libraries"),
+            Some(Parts {
+                structures: false,
+                libraries: true
+            })
+        );
+        assert_eq!(parse_parts(""), None);
+        assert_eq!(parse_parts("lib"), None);
     }
 
     #[test]

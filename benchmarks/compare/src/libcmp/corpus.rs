@@ -1,6 +1,7 @@
-//! Corpora of `bench-compare-lib`: generated once per (family, size, seed,
-//! query count), cached, and read by every runner (Rust, Go, C) in the same
-//! language-neutral binary layout (see `benchmarks/compare-lib/README.md`):
+//! Corpora of the libraries part of `bench-compare`: generated once per
+//! (family, size, seed, query count), cached, and read by every runner
+//! (Rust, Go, C) in the same language-neutral binary layout (see
+//! `benchmarks/compare-lib/README.md`):
 //!
 //! * `prefixes.bin`: the input networks with their record ids (`index + 1`:
 //!   unique, deterministic, non-zero);

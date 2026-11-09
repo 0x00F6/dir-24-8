@@ -2,9 +2,9 @@
 # jq programs and the envsubst variable list are single-quoted on purpose.
 # shellcheck disable=SC2016
 # Assembles the GitHub Pages site (.github/workflows/pages.yml): the landing
-# page (site/index.html), the reports of `make bench-compare` and
-# `make bench-compare-lib`, the API documentation (target/doc, when built)
-# and the media shown by the page.
+# page (site/index.html), the report of `make bench-compare` (one page, a
+# tab per comparison, with the JSON and CSV results of both), the API
+# documentation (target/doc, when built) and the media shown by the page.
 #
 # usage: site/build.sh <out-dir>
 #   REPORTS=<dir>      reports to publish (default benchmarks/reports)
@@ -13,7 +13,7 @@
 #                      site mode), not from this run
 #   REPORTS_CACHED=1   the reports come from the benchmark cache of pages.yml
 #                      (full mode, same measured sources), not from this run
-# Needs jq and envsubst. A missing report is shown as "not available".
+# Needs jq and envsubst. A comparison without results is shown as "no report".
 set -euo pipefail
 
 out=${1:?usage: site/build.sh <out-dir>}
@@ -23,6 +23,16 @@ repo_url=${SITE_REPO_URL:-https://github.com/${GITHUB_REPOSITORY:-0x00F6/dir-24-
 
 rm -rf "$out"
 mkdir -p "$out/assets" "$out/bench-compare" "$out/bench-compare-lib"
+# The libraries report used to be a page of its own: its address now leads
+# to the libraries tab.
+cat > "$out/bench-compare-lib/bench-compare-lib.html" <<'EOF'
+<!doctype html>
+<meta charset="utf-8">
+<title>Moved to the libraries tab of the benchmark report</title>
+<meta http-equiv="refresh" content="0; url=../bench-compare/report.html#libraries">
+<link rel="canonical" href="../bench-compare/report.html#libraries">
+<p>Moved to <a href="../bench-compare/report.html#libraries">the libraries tab of the benchmark report</a>.</p>
+EOF
 touch "$out/.nojekyll"
 cp "$root/site/style.css" "$root/site/highlight.js" "$out/"
 cp "$root/docs/images/logo.png" "$root/benchmarks/charts/lookup-flamegraph.svg" "$out/assets/"
@@ -39,12 +49,12 @@ def minutes: if . == null then "?" elif . < 60 then "\(. | floor) s" else "\(. /
 def date: if . == null then "?" else todate[0:10] end;
 '
 
-# Report card: $1 title, $2 description, $3 report page, $4 JSON, $5 CSV,
-# $6 jq program printing the <dl> rows and status (HTML, already escaped).
+# Card of a report tab: $1 title, $2 description, $3 tab (fragment of
+# bench-compare/report.html), $4 JSON, $5 CSV (in bench-compare/), $6 jq
+# program printing the <dl> rows and status (HTML, already escaped).
 card() {
-  local title=$1 desc=$2 page=$3 json=$4 csv=$5 rows=$6
-  local dir
-  dir=$(dirname "$page")
+  local title=$1 desc=$2 tab=$3 json=bench-compare/$4 csv=bench-compare/$5 rows=$6
+  local page=bench-compare/report.html
   if [[ -f "$out/$page" && -f "$out/$json" ]]; then
     local meta
     meta=$(jq -r "$JQ_LIB $rows" "$out/$json")
@@ -56,7 +66,7 @@ card() {
 $meta
   </dl>
   <div class="links">
-    <a class="btn primary" href="$page">Open the report</a>
+    <a class="btn primary" href="$page#$tab">Open the report</a>
     <a href="$json">JSON</a>
     <a href="$csv">CSV</a>
   </div>
@@ -67,24 +77,20 @@ EOF
 <article class="card report">
   <h3>$title</h3>
   <p class="desc">$desc</p>
-  <p class="empty">No report in this build ($dir).</p>
+  <p class="empty">No report in this build ($tab).</p>
 </article>
 EOF
   fi
 }
 
-if [[ -f "$reports/report.html" ]]; then
-  cp "$reports/report.html" "$reports/results.json" "$reports/results.csv" "$out/bench-compare/"
-fi
-if [[ -f "$reports/bench-compare-lib.html" ]]; then
-  cp "$reports/bench-compare-lib.html" "$reports/bench-compare-lib.json" "$reports/bench-compare-lib.csv" \
-    "$out/bench-compare-lib/"
-fi
+for f in report.html results.json results.csv libraries.json libraries.csv; do
+  [[ -f "$reports/$f" ]] && cp "$reports/$f" "$out/bench-compare/"
+done
 
-CARD_COMPARE=$(card \
-  'Rust structures <code>make bench-compare</code>' \
+CARD_STRUCTURES=$(card \
+  'Rust structures <code>make bench-compare, structures tab</code>' \
   'dir-24-8 against Rust LPM and membership structures: isolated-call latency percentiles, throughput with several threads, memory and build time, SIMD versus scalar batches per batch size.' \
-  bench-compare/report.html bench-compare/results.json bench-compare/results.csv '
+  structures results.json results.csv '
   .meta as $m
   | ([.runs[].status] | group_by(.) | map("\(length) \(.[0])") | join(", ")) as $counts
   | ([.runs[] | select(.status == "failed" or .status == "invalid")] | length) as $bad
@@ -95,10 +101,10 @@ CARD_COMPARE=$(card \
     "    <dt>Runs</dt><dd>\($counts | @html)</dd>"
 ')
 
-CARD_LIB=$(card \
-  'Go, C and Rust libraries <code>make bench-compare-lib</code>' \
-  'dir-24-8 against bart, go-iptrie, both cidrangers, libmaxminddb and Rust crates, each in a native runner of its language: membership and LPM throughput, latency, memory per prefix.' \
-  bench-compare-lib/bench-compare-lib.html bench-compare-lib/bench-compare-lib.json bench-compare-lib/bench-compare-lib.csv '
+CARD_LIBRARIES=$(card \
+  'Go, C and Rust libraries <code>make bench-compare, libraries tab</code>' \
+  'dir-24-8 against bart, go-iptrie, both cidrangers (Go), libmaxminddb (C) and Rust crates, each in a native runner of its language: membership and LPM throughput, latency, memory per prefix.' \
+  libraries libraries.json libraries.csv '
   .meta as $m
   | "    <dt>Run</dt><dd>\($m.started_unix | date) · \($m.duration_s | minutes) · <span class=\"status \(if $m.status == "complete" then "ok" elif $m.status == "partial" then "warn" else "bad" end)\">\($m.status | @html)</span></dd>",
     "    <dt>Machine</dt><dd>\($m.env.cpu | @html)</dd>",
@@ -135,8 +141,8 @@ else
 fi
 SITE_DATE=$(date -u +%Y-%m-%d)
 SITE_REPO_URL=$repo_url
-export CARD_COMPARE CARD_LIB BENCH_NOTE API_HREF SITE_COMMIT SITE_COMMIT_SHORT SITE_DATE SITE_REPO_URL SITE_VERSION
-envsubst '$CARD_COMPARE $CARD_LIB $BENCH_NOTE $API_HREF $SITE_COMMIT $SITE_COMMIT_SHORT $SITE_DATE $SITE_REPO_URL $SITE_VERSION' \
+export CARD_STRUCTURES CARD_LIBRARIES BENCH_NOTE API_HREF SITE_COMMIT SITE_COMMIT_SHORT SITE_DATE SITE_REPO_URL SITE_VERSION
+envsubst '$CARD_STRUCTURES $CARD_LIBRARIES $BENCH_NOTE $API_HREF $SITE_COMMIT $SITE_COMMIT_SHORT $SITE_DATE $SITE_REPO_URL $SITE_VERSION' \
   < "$root/site/index.html" > "$out/index.html"
 
 echo "site assembled in $out:"

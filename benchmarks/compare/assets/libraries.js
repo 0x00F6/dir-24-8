@@ -1,15 +1,26 @@
 "use strict";
+// Libraries tab of report.html (libraries.json): its element ids carry the
+// "libraries-" prefix.
 (() => {
-  let R;
+  const $ = (id) => document.getElementById("libraries-" + id);
+  const root = document.getElementById("libraries");
+  let R = null;
   try {
-    R = JSON.parse(document.getElementById("data").textContent);
+    R = JSON.parse($("data").textContent);
   } catch {
-    document.getElementById("subtitle").textContent =
-      "Template without results: run `make bench-compare-lib` to generate benchmarks/reports/bench-compare-lib.html.";
+    // The template opened directly: no results embedded.
+  }
+  if (!R) {
+    root.dataset.status = "none";
+    root.dataset.summary = "not measured";
+    $("subtitle").textContent =
+      "No results for this tab: run make bench-compare (PARTS=libraries measures this tab only), or make bench-compare REPORT_ONLY=1 to redraw the report from benchmarks/reports/libraries.json.";
+    for (const id of ["toc", "filters", "main", "footer"]) $(id).hidden = true;
     return;
   }
-  const $ = (id) => document.getElementById(id);
   const S = R.meta.settings;
+  root.dataset.status = { complete: "ok", partial: "warn" }[R.meta.status] || "bad";
+  root.dataset.summary = `${R.meta.status} · ${new Date(R.meta.started_unix * 1000).toISOString().slice(0, 10)} · ${R.meta.env.cpu}`;
 
   // ------------------------------------------------------------ identity
   const LIBS = R.libs.slice().sort((a, b) => a.index - b.index);
@@ -20,7 +31,15 @@
   const baseOf = (id) => libBy.get(id)?.variant_of || id;
   const colorOf = (id) => `var(--s${(Math.max(0, BASES.indexOf(baseOf(id))) % 8) + 1})`;
   const dashed = (id) => !!libBy.get(id)?.variant_of;
-  const label = (id) => libBy.get(id)?.label || id;
+  // Display name: the library and its language, e.g. "bart (Go)" or
+  // "dir-24-8 (Rust, AVX2)" for a label that already names a variant.
+  const label = (id) => {
+    const l = libBy.get(id);
+    if (!l) return id;
+    const name = l.label || id;
+    const m = /^(.*) \((.*)\)$/.exec(name);
+    return m ? `${m[1]} (${l.lang}, ${m[2]})` : `${name} (${l.lang})`;
+  };
   /** SVG style of a filled mark (bar, candle body): variants are hollow and dashed. */
   const fillStyle = (id, opacity) =>
     dashed(id)
@@ -132,7 +151,7 @@
 
   // ------------------------------------------------------------ filters, legend
   function renderFilters() {
-    const row = clear(document.querySelector(".filters-row"));
+    const row = clear($("filters").querySelector(".filters-row"));
     const hasData = (sc) => R.throughput.some((e) => e.family === state.family && e.scenario === sc && e.size === state.size && e.status === "ok");
     row.append(
       segGroup("Family", S.families.map((f) => [f, FAMILY[f]]), () => state.family, (v) => (state.family = v)),
@@ -159,13 +178,13 @@
           type: "button",
           class: "lchip",
           "aria-pressed": String(!state.hidden.has(l.id)),
-          title: `Show or hide ${l.id} (${l.lang})`,
+          title: `Show or hide ${label(l.id)}`,
           onclick: () => {
             if (state.hidden.has(l.id)) state.hidden.delete(l.id);
             else state.hidden.add(l.id);
             renderAll();
           },
-        }, swatch(l.id), document.createTextNode(`${label(l.id)} · ${l.lang}`))
+        }, swatch(l.id), document.createTextNode(label(l.id)))
       );
     }
   }
@@ -428,7 +447,7 @@
       (go ? `Go: GOMAXPROCS = ${go.runtime.GOMAXPROCS} (default), GOGC = ${go.runtime.GOGC}. ` : "") +
       `No CPU affinity in any runner; this CPU has ${R.meta.env.physical_cores ?? "?"} physical cores and ${R.meta.env.logical_cpus} logical CPUs.`;
     if (THREAD_LIST.length < 2) {
-      clear($("line-threads")).append(el("p", { class: "placeholder", text: "Only one thread count was measured in this run (BENCH_THREADS)." }));
+      clear($("line-threads")).append(el("p", { class: "placeholder", text: "Only one thread count was measured in this run (THREADS)." }));
       clear($("line-speedup"));
       return;
     }
@@ -513,7 +532,7 @@
   function renderTable() {
     $("table-note").textContent =
       `${FAMILY[state.family]} · ${OP_SHORT[state.op]} · ${SCEN[state.scenario]} · throughput at ${thLabel(state.threads)}, latency and memory at 1 thread: every size and library (use the filters). Click a header to sort. ` +
-      "The export contains the rows shown; bench-compare-lib.csv and bench-compare-lib.json next to this report hold every measurement and every repetition.";
+      "The export contains the rows shown; libraries.csv and libraries.json next to this report hold every measurement and every repetition.";
     const rows = resultRows();
     const bar = clear($("table-bar"));
     bar.append(
@@ -521,15 +540,15 @@
         type: "button", class: "btn", text: "Export these rows (CSV)",
         onclick: () => {
           const blob = new Blob([csvOf(rows)], { type: "text/csv" });
-          const a = el("a", { href: URL.createObjectURL(blob), download: `bench-compare-lib-${state.family}-${state.op}-${state.scenario}-${state.threads}t.csv` });
+          const a = el("a", { href: URL.createObjectURL(blob), download: `libraries-${state.family}-${state.op}-${state.scenario}-${state.threads}t.csv` });
           document.body.append(a);
           a.click();
           a.remove();
         },
       }),
       el("span", { text: `${rows.length} rows` }),
-      el("a", { href: "bench-compare-lib.csv", text: "full CSV" }),
-      el("a", { href: "bench-compare-lib.json", text: "full JSON" })
+      el("a", { href: "libraries.csv", text: "full CSV" }),
+      el("a", { href: "libraries.json", text: "full JSON" })
     );
     clear($("results-table")).append(table(COLS, rows, { sortKey: "mlps", desc: true, swatch: true }));
   }
@@ -756,7 +775,7 @@
       ["memory limit per process", fmtBytes(R.meta.mem_limit_bytes)], ["GOAMD64", S.goamd64], ["threads", `throughput: ${THREAD_LIST.join(", ")} (mixed scenario); latency, validation and memory: 1`],
       ["notes", (S.notes || []).join("; ")], ["raw runner outputs", R.meta.raw_dir],
     ]));
-    $("footer").textContent = `bench-compare-lib · schema ${R.schema} · generated from bench-compare-lib.json (raw runner outputs: ${R.meta.raw_dir})`;
+    $("footer").textContent = `Libraries part of bench-compare · schema ${R.schema} · raw data: libraries.json and libraries.csv next to this file (raw runner outputs: ${R.meta.raw_dir}); regenerate this page without measuring with "make bench-compare REPORT_ONLY=1".`;
   }
 
   // ------------------------------------------------------------ main
@@ -772,17 +791,26 @@
     renderThreads();
     renderTable();
   }
+  // Charts are sized from their cards: a hidden tab is drawn when shown.
+  let stale = false;
+  function draw() {
+    stale = root.hidden;
+    if (!stale) renderAll();
+  }
   renderHeader();
-  renderAll();
+  draw();
   renderValidation();
   renderStatus();
   renderLibraries();
   renderCorpora();
   renderMethod();
   renderEnv();
+  root.addEventListener("tabshow", () => {
+    if (stale) draw();
+  });
   let resizeTimer = 0;
   window.addEventListener("resize", () => {
     clearTimeout(resizeTimer);
-    resizeTimer = setTimeout(renderAll, 150);
+    resizeTimer = setTimeout(draw, 150);
   });
 })();

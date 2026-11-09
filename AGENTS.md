@@ -41,16 +41,16 @@ Guidance for humans and coding agents working on this repository.
 | `tests/` | integration, oracle, property, concurrency, no-allocation tests |
 | `examples/` | runnable examples (each asserts its results) |
 | `benches/` | Criterion benches; `benches/support/data.rs` is the shared data generator (route tables, oracle, query distributions) used by Criterion and `bench-compare` |
-| `benchmarks/compare/` | `bench-compare` crate (separate package, its dependencies never reach the library): `engines/` competitors, `adapter.rs` uniform engine interface, `dataset.rs` cached datasets, `bench.rs` measurement process, `main.rs` orchestration, `report.rs` + `assets/` JSON/CSV/HTML reports |
-| `benchmarks/compare/src/libcmp/` | `bench-compare-lib` (same crate): corpora (`corpus.rs`), dependency preparation (`deps.rs`), Rust runner (`runner.rs`), orchestration, aggregation, report (`assets/lib-report.*`, shared `kit.js` and `report.css`) |
-| `benchmarks/compare-lib/` | native runners of `bench-compare-lib`: `go/` (one module: cidranger x2, go-iptrie, bart, MMDB writer), `c/runner.c` (libmaxminddb); protocol and methodology in its `README.md` |
+| `benchmarks/compare/` | `bench-compare` crate (separate package, its dependencies never reach the library), structures part: `engines/` competitors, `adapter.rs` uniform engine interface, `dataset.rs` cached datasets, `bench.rs` measurement process, `main.rs` orchestration of both parts, `report.rs` JSON/CSV results; `page.rs` + `assets/` the single HTML report (`report.html` template, shared `report.css` and `kit.js`, `structures.*` and `libraries.*` tab scripts, `page.js` tabs) |
+| `benchmarks/compare/src/libcmp/` | libraries part of `bench-compare` (same crate): settings (`settings.rs`, `LIB_*` options), corpora (`corpus.rs`), dependency preparation (`deps.rs`), Rust runner (`runner.rs`, `bench-compare runner --plan`), orchestration, aggregation (`results.rs`, `libraries.json`/`.csv`) |
+| `benchmarks/compare-lib/` | native runners of the libraries part: `go/` (one module: cidranger x2, go-iptrie, bart, MMDB writer), `c/runner.c` (libmaxminddb); protocol and methodology in its `README.md` |
 | `benchmarks/reports/` | generated reports (git-ignored) |
 | `benchmarks/charts/` | images shown by `README.md`: report captures and the lookup flame graph (`make flamegraph`); excluded from the crate package |
 | `docs/` | architecture and performance notes |
 | `scripts/release.sh` | `make release`: GitHub release (checks, `make ci`, packages, tag, `gh release create`) |
 | `scripts/publish.sh` | `make publish`: crates.io publication of `dir-24-8-derive` then `dir-24-8` (checks, `make ci doc-crates`, `cargo publish`; versions already on crates.io are skipped) |
-| `site/` | GitHub Pages site (`.github/workflows/pages.yml`: full mode with fresh benchmarks for version tags `vX.Y.Z` pushed by `make release` or by hand, skipped when the reports of the same measured sources are cached; site mode, reusing the deployed reports, for pushes to master that change `site/` or the page's assets): landing page template and style, `build.sh` (assembles it with the reports measured by the workflow and the API docs), `charts.sh` + `charts.mjs` + `pack_png.py` (captures `benchmarks/charts/*.png` from the reports; list and captions in `charts.tsv`), `readme_blocks.py` and `publish-results.sh` (copy the regenerated README blocks and charts to `master`, committed by github-actions[bot]) |
-| `README.md`, `README.crates.md` | repository page and crates.io page (`readme` in `Cargo.toml`); both are doctested through `src/lib.rs` (`derive/README.md`, the crates.io page of `dir-24-8-derive`, through `derive/src/lib.rs`), keep their shared examples in sync; `make doc-crates` checks the crates.io pages and builds the docs.rs documentation. Generated blocks of `README.md`, edit their generator, not the block: `bench-compare-lib:summary` (`make bench-compare-lib`, `libcmp/readme.rs`, `BENCH_README`), `bench-compare:details` (`make bench-compare`, `readme.rs`, `README`), `benchmark-charts` (`site/charts.sh`, `site/charts.tsv`) |
+| `site/` | GitHub Pages site (`.github/workflows/pages.yml`: full mode with fresh benchmarks for version tags `vX.Y.Z` pushed by `make release` or by hand, skipped when the reports of the same measured sources are cached; site mode, reusing the deployed results (redrawn by the report of the commit), for pushes to master that change `site/` or the page's assets): landing page template and style, `build.sh` (assembles it with the report measured by the workflow, a card per tab, and the API docs), `charts.sh` + `charts.mjs` + `pack_png.py` (captures `benchmarks/charts/*.png` from the two tabs of the report; list and captions in `charts.tsv`), `readme_blocks.py` and `publish-results.sh` (copy the regenerated README blocks and charts to `master`, committed by github-actions[bot]) |
+| `README.md`, `README.crates.md` | repository page and crates.io page (`readme` in `Cargo.toml`); both are doctested through `src/lib.rs` (`derive/README.md`, the crates.io page of `dir-24-8-derive`, through `derive/src/lib.rs`), keep their shared examples in sync; `make doc-crates` checks the crates.io pages and builds the docs.rs documentation. Generated blocks of `README.md`, edit their generator, not the block: `bench-compare:summary` (`make bench-compare`, libraries part, `libcmp/readme.rs`, `README`), `bench-compare:details` (`make bench-compare`, structures part, `readme.rs`, `README`), `benchmark-charts` (`site/charts.sh`, `site/charts.tsv`) |
 
 ## Validation commands
 
@@ -63,9 +63,8 @@ make examples doc          # examples assert their results; rustdoc with -D warn
 make doc-crates            # crates.io + docs.rs pages: docs.rs-like rustdoc (nightly), README examples and links, packages
 make bench                 # Criterion (FILTER, BENCHES, SIMD=0, BENCH_TIME)
 make bench BENCHES=snapshot  # snapshot size/time/memory (SNAPSHOT_SIZES, SNAPSHOT_PROFILES, SNAPSHOT_REPS)
-make bench-compare         # comparison + reports in benchmarks/reports/ (SIZES, THREADS, ENGINES, ...)
-make bench-compare REPORT_ONLY=1   # regenerate the reports from results.json
-make bench-compare-lib     # lookups vs Go/C/Rust libraries -> benchmarks/reports/bench-compare-lib.html (BENCH_PROFILE=smoke|standard|full, BENCH_* variables)
+make bench-compare         # structures + libraries -> one report, benchmarks/reports/report.html (PARTS, SIZES, THREADS, ENGINES, LIB_PROFILE=smoke|standard|full, LIB_*, ...)
+make bench-compare REPORT_ONLY=1   # regenerate the report and CSV files from results.json and libraries.json
 make ci                    # what CI runs
 make flamegraph            # perf profile of every lookup method -> benchmarks/charts/lookup-flamegraph.svg
 make release VERSION=X.Y.Z # GitHub release vX.Y.Z (checks, make ci, tag, gh release; DRY_RUN=1 to rehearse)
@@ -73,9 +72,12 @@ make publish VERSION=X.Y.Z # crates.io: dir-24-8-derive then dir-24-8 (checks, m
 make coverage              # cargo-llvm-cov report of the library (target/llvm-cov/html)
 ```
 
-The Makefile has three benchmark targets (`bench`, `bench-compare`,
-`bench-compare-lib`); add options as variables, not targets. Every `bench-compare` option is
-listed in the Makefile header and in `bench-compare --help`.
+The Makefile has two benchmark targets (`bench`, `bench-compare`); add
+options as variables, not targets. `bench-compare` runs two parts
+(`PARTS=structures,libraries`) and writes one report with a tab each; the
+options of the libraries part are `LIB_*` (`BENCH_LIB_*`, `--lib-*`).
+Every `bench-compare` option is listed in the Makefile header and in
+`bench-compare --help`.
 
 Tests without `batch-simd` exercise the scalar batch kernel; with it
 (`--all-features`), the integration tests use the kernel detected on the
@@ -156,7 +158,7 @@ raw cells into dedicated `u32` buffers and sinks convert them.
   built without it); the Makefile builds both.
 * Keep the comparison fair: same routes, payloads, queries, order and batch
   sizes for every engine; monomorphized adapters, no dynamic dispatch.
-* `bench-compare-lib`: every runner implements the same plan protocol and
+* `bench-compare`, libraries part: every runner implements the same plan protocol and
   measurement steps (`benchmarks/compare-lib/README.md`); a change of the
   methodology goes into the three runners (Rust, Go, C) at once. Lookup
   loops stay in the library's own adapter (direct calls), the two

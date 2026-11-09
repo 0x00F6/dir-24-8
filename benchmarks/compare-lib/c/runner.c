@@ -1,5 +1,5 @@
 /*
- * Native C runner of `make bench-compare-lib` for libmaxminddb (MaxMind's
+ * Native C runner of the libraries part of `make bench-compare` for libmaxminddb (MaxMind's
  * official C reader). Same plan protocol and JSON-lines output as the Go
  * and Rust runners (benchmarks/compare-lib/README.md).
  *

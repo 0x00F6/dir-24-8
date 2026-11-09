@@ -1,4 +1,4 @@
-// Native Go runner (and MMDB writer) of `make bench-compare-lib`. One
+// Native Go runner (and MMDB writer) of the libraries part of `make bench-compare`. One
 // module, one toolchain, one set of build flags for every Go library.
 module dir248bench/compare-lib
 

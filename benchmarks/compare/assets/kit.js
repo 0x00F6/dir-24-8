@@ -1,7 +1,7 @@
 "use strict";
 /**
- * Report kit shared by the two standalone reports (bench-compare's
- * report.html and bench-compare-lib.html): formatting, DOM and SVG
+ * Report kit shared by the two tabs of report.html (structures.js and
+ * libraries.js): formatting, DOM and SVG
  * helpers, tooltip, scales and ticks, filter buttons, legend swatches,
  * line chart and sortable table. Series styling comes from the caller.
  *

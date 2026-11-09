@@ -3,130 +3,260 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>dir-24-8 - LPM structure comparison</title>
+<title>dir-24-8 lookup benchmarks</title>
 <link rel="stylesheet" href="report.css">
+<link rel="stylesheet" href="libraries.css">
 </head>
 <body>
 <div class="viz-root">
 <header class="page-head">
   <div class="wrap">
-    <h1>dir-24-8 - IPv4 / IPv6 lookup structure comparison</h1>
-    <p class="sub" id="subtitle"></p>
-    <div class="chips" id="env-chips"></div>
-    <div class="warn" id="partial" hidden>Partial results: the run was interrupted or is still in progress.</div>
+    <h1>dir-24-8 - IPv4 / IPv6 lookup benchmarks</h1>
+    <p class="sub">Two comparisons measured by make bench-compare, one per tab. Each has its own data, machine and date: compare entries within a tab, not across tabs.</p>
+    <div class="parts" role="tablist" aria-label="Comparisons">
+      <button type="button" role="tab" class="part-tab" id="tab-structures" aria-controls="structures" aria-selected="true">
+        <span class="pt-title">Rust structures</span>
+        <span class="pt-desc">dir-24-8 against Rust LPM and membership crates, in process: latency, batches, threads, memory.</span>
+        <span class="pt-status" id="tab-structures-status"></span>
+      </button>
+      <button type="button" role="tab" class="part-tab" id="tab-libraries" aria-controls="libraries" aria-selected="false" tabindex="-1">
+        <span class="pt-title">Go, C and Rust libraries</span>
+        <span class="pt-desc">dir-24-8 against Go, C and Rust libraries, each in a native runner of its language: membership and LPM lookups.</span>
+        <span class="pt-status" id="tab-libraries-status"></span>
+      </button>
+    </div>
   </div>
 </header>
-<nav class="toc"><div class="wrap">
-  <a href="#overview">Overview</a><a href="#latency">Latency</a><a href="#throughput">Throughput</a>
-  <a href="#scaling">Scaling with entries</a><a href="#threads">Threads</a><a href="#batch-section">Batch size</a><a href="#memory">Memory</a>
-  <a href="#results">Results table</a><a href="#status">Not executed</a><a href="#datasets">Datasets</a>
-  <a href="#method">Methodology</a><a href="#environment">Environment</a><a href="#structures">Structures</a>
-</div></nav>
-<div class="filters" id="filters" role="toolbar" aria-label="Filters"><div class="wrap filters-row"></div></div>
-<main class="wrap">
-  <div class="legend" id="legend" aria-label="Structures (click to show or hide)"></div>
+<div class="part" id="structures" role="tabpanel" aria-labelledby="tab-structures">
+  <div class="part-head"><div class="wrap">
+    <p class="sub" id="structures-subtitle"></p>
+    <div class="chips" id="structures-env-chips"></div>
+    <div class="warn" id="structures-partial" hidden>Partial results: the run was interrupted or is still in progress.</div>
+  </div></div>
+  <nav class="toc" id="structures-toc"><div class="wrap">
+    <a href="#structures-overview">Overview</a><a href="#structures-latency">Latency</a><a href="#structures-throughput">Throughput</a>
+    <a href="#structures-scaling">Scaling with entries</a><a href="#structures-threads">Threads</a><a href="#structures-batch-section">Batch size</a><a href="#structures-memory">Memory</a>
+    <a href="#structures-results">Results table</a><a href="#structures-status">Not executed</a><a href="#structures-datasets">Datasets</a>
+    <a href="#structures-method">Methodology</a><a href="#structures-environment">Environment</a><a href="#structures-catalog">Structures</a>
+  </div></nav>
+  <div class="filters" id="structures-filters" role="toolbar" aria-label="Filters"><div class="wrap filters-row"></div></div>
+  <main class="wrap" id="structures-main">
+    <div class="legend" id="structures-legend" aria-label="Structures (click to show or hide)"></div>
 
-  <section id="overview">
-    <h2>Overview</h2>
-    <div class="tiles" id="tiles"></div>
-    <p class="note" id="overview-note"></p>
-  </section>
+    <section id="structures-overview">
+      <h2>Overview</h2>
+      <div class="tiles" id="structures-tiles"></div>
+      <p class="note" id="structures-overview-note"></p>
+    </section>
 
-  <section id="latency">
-    <h2>Latency - Candlestick Percentile Rank</h2>
-    <p class="note" id="latency-note"></p>
-    <div class="card" id="candle-card"></div>
-  </section>
+    <section id="structures-latency">
+      <h2>Latency - Candlestick Percentile Rank</h2>
+      <p class="note" id="structures-latency-note"></p>
+      <div class="card" id="structures-candle-card"></div>
+    </section>
 
-  <section id="throughput">
-    <h2>Throughput</h2>
-    <p class="note">Aggregate addresses per second over all worker threads (median of the timed repetitions; the whisker spans the slowest and fastest repetition). Higher is better.</p>
-    <div class="card" id="bars-card"></div>
-  </section>
+    <section id="structures-throughput">
+      <h2>Throughput</h2>
+      <p class="note">Aggregate addresses per second over all worker threads (median of the timed repetitions; the whisker spans the slowest and fastest repetition). Higher is better.</p>
+      <div class="card" id="structures-bars-card"></div>
+    </section>
 
-  <section id="scaling">
-    <h2>Scaling with the number of entries</h2>
-    <p class="note" id="scaling-note"></p>
-    <div class="grid2">
-      <div class="card" id="line-throughput"></div>
-      <div class="card" id="line-build"></div>
-    </div>
-    <div class="grid3">
-      <div class="card" id="line-p50"></div>
-      <div class="card" id="line-p95"></div>
-      <div class="card" id="line-p99"></div>
-    </div>
-    <div class="grid2">
-      <div class="card" id="line-memory"></div>
-      <div class="card" id="line-bpe"></div>
-    </div>
-  </section>
+    <section id="structures-scaling">
+      <h2>Scaling with the number of entries</h2>
+      <p class="note" id="structures-scaling-note"></p>
+      <div class="grid2">
+        <div class="card" id="structures-line-throughput"></div>
+        <div class="card" id="structures-line-build"></div>
+      </div>
+      <div class="grid3">
+        <div class="card" id="structures-line-p50"></div>
+        <div class="card" id="structures-line-p95"></div>
+        <div class="card" id="structures-line-p99"></div>
+      </div>
+      <div class="grid2">
+        <div class="card" id="structures-line-memory"></div>
+        <div class="card" id="structures-line-bpe"></div>
+      </div>
+    </section>
 
-  <section id="threads">
-    <h2>Throughput with 1, 4 and 8 threads</h2>
-    <p class="note" id="threads-note"></p>
-    <div class="grid2">
-      <div class="card" id="line-threads"></div>
-      <div class="card" id="speedup-card"></div>
-    </div>
-  </section>
+    <section id="structures-threads">
+      <h2>Throughput with 1, 4 and 8 threads</h2>
+      <p class="note" id="structures-threads-note"></p>
+      <div class="grid2">
+        <div class="card" id="structures-line-threads"></div>
+        <div class="card" id="structures-speedup-card"></div>
+      </div>
+    </section>
 
-  <section id="batch-section">
-    <h2>Batch size: SIMD versus scalar batches</h2>
-    <p class="note" id="batch-note"></p>
-    <div class="grid2">
-      <div class="card" id="line-batch"></div>
-      <div class="card" id="batch-speedup-card"></div>
-    </div>
-  </section>
+    <section id="structures-batch-section">
+      <h2>Batch size: SIMD versus scalar batches</h2>
+      <p class="note" id="structures-batch-note"></p>
+      <div class="grid2">
+        <div class="card" id="structures-line-batch"></div>
+        <div class="card" id="structures-batch-speedup-card"></div>
+      </div>
+    </section>
 
-  <section id="memory">
-    <h2>Memory</h2>
-    <p class="note" id="memory-note"></p>
-    <div class="card table-card" id="memory-table"></div>
-  </section>
+    <section id="structures-memory">
+      <h2>Memory</h2>
+      <p class="note" id="structures-memory-note"></p>
+      <div class="card table-card" id="structures-memory-table"></div>
+    </section>
 
-  <section id="results">
-    <h2>Results table</h2>
-    <p class="note" id="results-note"></p>
-    <div class="card table-card" id="results-table"></div>
-  </section>
+    <section id="structures-results">
+      <h2>Results table</h2>
+      <p class="note" id="structures-results-note"></p>
+      <div class="card table-card" id="structures-results-table"></div>
+    </section>
 
-  <section id="status">
-    <h2>Not executed or not comparable</h2>
-    <p class="note">Every configuration that has no measurement, with the reason. Unavailable values are never drawn as zero: charts leave a gap and tables show the status.</p>
-    <div class="card table-card" id="status-table"></div>
-  </section>
+    <section id="structures-status">
+      <h2>Not executed or not comparable</h2>
+      <p class="note">Every configuration that has no measurement, with the reason. Unavailable values are never drawn as zero: charts leave a gap and tables show the status.</p>
+      <div class="card table-card" id="structures-status-table"></div>
+    </section>
 
-  <section id="datasets">
-    <h2>Datasets</h2>
-    <p class="note" id="datasets-note"></p>
-    <div class="card table-card" id="datasets-table"></div>
-  </section>
+    <section id="structures-datasets">
+      <h2>Datasets</h2>
+      <p class="note" id="structures-datasets-note"></p>
+      <div class="card table-card" id="structures-datasets-table"></div>
+    </section>
 
-  <section id="method">
-    <h2>Methodology</h2>
-    <div class="card prose" id="method-text"></div>
-  </section>
+    <section id="structures-method">
+      <h2>Methodology</h2>
+      <div class="card prose" id="structures-method-text"></div>
+    </section>
 
-  <section id="environment">
-    <h2>Environment and settings</h2>
-    <div class="grid2">
-      <div class="card table-card" id="env-table"></div>
-      <div class="card table-card" id="settings-table"></div>
-    </div>
-  </section>
+    <section id="structures-environment">
+      <h2>Environment and settings</h2>
+      <div class="grid2">
+        <div class="card table-card" id="structures-env-table"></div>
+        <div class="card table-card" id="structures-settings-table"></div>
+      </div>
+    </section>
 
-  <section id="structures">
-    <h2>Structures</h2>
-    <div class="card table-card" id="catalog-table"></div>
-  </section>
-</main>
-<footer class="wrap foot" id="footer"></footer>
+    <section id="structures-catalog">
+      <h2>Structures</h2>
+      <div class="card table-card" id="structures-catalog-table"></div>
+    </section>
+  </main>
+  <footer class="wrap foot" id="structures-footer"></footer>
+</div>
+<div class="part" id="libraries" role="tabpanel" aria-labelledby="tab-libraries" hidden>
+  <div class="part-head"><div class="wrap">
+    <p class="sub" id="libraries-subtitle"></p>
+    <div class="runstatus" id="libraries-runstatus"></div>
+    <div class="chips" id="libraries-env-chips"></div>
+  </div></div>
+  <nav class="toc" id="libraries-toc"><div class="wrap">
+    <a href="#libraries-sizes">Throughput vs prefixes</a><a href="#libraries-memory">Memory vs prefixes</a><a href="#libraries-bars">Throughput</a>
+    <a href="#libraries-latency">Latency</a><a href="#libraries-latency-sizes">Latency vs prefixes</a><a href="#libraries-threads">Threads</a>
+    <a href="#libraries-table">Results table</a><a href="#libraries-validation">Validation</a><a href="#libraries-status">Not measured</a>
+    <a href="#libraries-libraries">Libraries</a><a href="#libraries-corpora">Corpora</a><a href="#libraries-method">Methodology</a><a href="#libraries-environment">Environment</a>
+  </div></nav>
+  <div class="filters" id="libraries-filters" role="toolbar" aria-label="Filters"><div class="wrap filters-row"></div></div>
+  <main class="wrap" id="libraries-main">
+    <div class="legend" id="libraries-legend" aria-label="Libraries (click to show or hide)"></div>
+
+    <section id="libraries-sizes">
+      <h2>Throughput vs number of prefixes</h2>
+      <p class="note" id="libraries-sizes-note"></p>
+      <div class="card" id="libraries-line-throughput"></div>
+    </section>
+
+    <section id="libraries-memory">
+      <h2>Memory vs number of prefixes</h2>
+      <p class="note" id="libraries-memory-note"></p>
+      <div class="grid2">
+        <div class="card" id="libraries-line-memory"></div>
+        <div class="card" id="libraries-line-bpp"></div>
+      </div>
+    </section>
+
+    <section id="libraries-bars">
+      <h2>Throughput of the selected configuration</h2>
+      <p class="note" id="libraries-bars-note"></p>
+      <div class="card" id="libraries-bars-card"></div>
+    </section>
+
+    <section id="libraries-latency">
+      <h2>Single-thread latency - Candlestick Percentile Rank</h2>
+      <p class="note" id="libraries-latency-note"></p>
+      <div class="card" id="libraries-candle-card"></div>
+    </section>
+
+    <section id="libraries-latency-sizes">
+      <h2>Single-thread latency vs number of prefixes</h2>
+      <div class="grid2">
+        <div class="card" id="libraries-line-p50"></div>
+        <div class="card" id="libraries-line-p99"></div>
+      </div>
+    </section>
+
+    <section id="libraries-threads">
+      <h2>Multithreaded throughput</h2>
+      <p class="note" id="libraries-threads-note"></p>
+      <div class="grid2">
+        <div class="card" id="libraries-line-threads"></div>
+        <div class="card" id="libraries-line-speedup"></div>
+      </div>
+    </section>
+
+    <section id="libraries-table">
+      <h2>Results table</h2>
+      <p class="note" id="libraries-table-note"></p>
+      <div class="tablebar" id="libraries-table-bar"></div>
+      <div class="card table-card" id="libraries-results-table"></div>
+    </section>
+
+    <section id="libraries-validation">
+      <h2>Validation against the oracle</h2>
+      <p class="note" id="libraries-validation-note"></p>
+      <div class="card table-card" id="libraries-validation-table"></div>
+      <div class="card table-card" id="libraries-edge-table"></div>
+    </section>
+
+    <section id="libraries-status">
+      <h2>Not measured, failed or not applicable</h2>
+      <p class="note">Every planned measurement without a value, with its status and reason. A missing value is never drawn as zero: charts leave a gap and tables show the status.</p>
+      <div class="card table-card" id="libraries-status-table"></div>
+    </section>
+
+    <section id="libraries-libraries">
+      <h2>Libraries and adapters</h2>
+      <p class="note" id="libraries-libraries-note"></p>
+      <div class="card table-card" id="libraries-libs-table"></div>
+      <div class="card table-card" id="libraries-modules-table"></div>
+    </section>
+
+    <section id="libraries-corpora">
+      <h2>Corpora and MMDB files</h2>
+      <p class="note" id="libraries-corpora-note"></p>
+      <div class="card table-card" id="libraries-corpora-table"></div>
+      <div class="card table-card" id="libraries-mmdb-table"></div>
+    </section>
+
+    <section id="libraries-method">
+      <h2>Methodology</h2>
+      <div class="card prose" id="libraries-method-text"></div>
+    </section>
+
+    <section id="libraries-environment">
+      <h2>Environment, toolchains and settings</h2>
+      <div class="grid2">
+        <div class="card table-card" id="libraries-env-table"></div>
+        <div class="card table-card" id="libraries-settings-table"></div>
+      </div>
+    </section>
+  </main>
+  <footer class="wrap foot" id="libraries-footer"></footer>
+</div>
 <div class="tooltip" id="tooltip" role="tooltip" hidden></div>
 </div>
-<script id="data" type="application/json">__DATA__</script>
+<script id="structures-data" type="application/json">__STRUCTURES_DATA__</script>
+<script id="libraries-data" type="application/json">__LIBRARIES_DATA__</script>
 <script src="kit.js"></script>
-<script src="report.js"></script>
+<script src="structures.js"></script>
+<script src="libraries.js"></script>
+<script src="page.js"></script>
 </body>
 </html>

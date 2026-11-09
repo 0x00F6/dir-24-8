@@ -5,15 +5,11 @@ edition = "2024"
 # roaring 0.12 declares Rust 1.90 (the library itself stays at 1.89).
 rust-version = "1.90"
 publish = false
-description = "Reproducible comparison of dir-24-8 against other LPM / membership structures (latency, throughput, memory, threads)"
+description = "Reproducible comparison of dir-24-8 against other LPM / membership structures and Go, C and Rust libraries (latency, throughput, memory, threads)"
 
 [[bin]]
 name = "bench-compare"
 path = "src/main.rs"
-
-[[bin]]
-name = "bench-compare-lib"
-path = "src/bin/bench-compare-lib.rs"
 
 [features]
 default = ["batch-simd"]

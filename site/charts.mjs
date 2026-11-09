@@ -1,7 +1,8 @@
 // Captures the benchmark images of README.md (benchmarks/charts/*.png) from
-// the two HTML reports with headless Chrome, at device scale factor 2.
+// the two tabs of the HTML report of `make bench-compare` with headless
+// Chrome, at device scale factor 2.
 //
-// usage: node site/charts.mjs <report.html> <bench-compare-lib.html> <out-dir>
+// usage: node site/charts.mjs <report.html> <out-dir>
 //   CHROME=<path>  browser (default: google-chrome, google-chrome-stable,
 //                  chromium, chromium-browser)
 // Needs Node 22 or later (global WebSocket). site/charts.sh wraps it: it
@@ -12,33 +13,34 @@ import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { pathToFileURL } from "node:url";
 
-const [compareHtml, libHtml, outDir] = process.argv.slice(2);
-if (!compareHtml || !libHtml || !outDir) {
-  console.error("usage: node site/charts.mjs <report.html> <bench-compare-lib.html> <out-dir>");
+const [reportHtml, outDir] = process.argv.slice(2);
+if (!reportHtml || !outDir) {
+  console.error("usage: node site/charts.mjs <report.html> <out-dir>");
   process.exit(2);
 }
 mkdirSync(outDir, { recursive: true });
-const compare = pathToFileURL(resolve(compareHtml)).href;
-const lib = pathToFileURL(resolve(libHtml)).href;
+const report = pathToFileURL(resolve(reportHtml)).href;
 
-// One entry per README image. `clicks`: [filter group, button text, fallback]
+// One entry per README image. `part`: the report tab (structures or
+// libraries), whose ids carry it as a prefix: `element` and the legend are
+// looked up as "#<part>-<id>". `clicks`: [filter group, button text, fallback]
 // where fallback "last" picks the group's last button when the text is
 // missing (a matrix without 1M entries). `legend` copies the structure
 // legend into the card; `fit` crops a card stretched by its grid row;
 // `optional` skips an absent or hidden element (older reports).
 const SHOTS = [
-  { url: compare, out: "candlestick-ipv4-lookup", element: "#candle-card", clicks: [["Family", "IPv4"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "candlestick-ipv6-lookup", element: "#candle-card", clicks: [["Family", "IPv6"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "throughput-ipv4-batch", element: "#bars-card", clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "throughput-ipv6-batch", element: "#bars-card", clicks: [["Family", "IPv6"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "scaling-ipv4-batch", element: "#line-throughput", width: 820, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"]] },
-  { url: compare, out: "threads-ipv4-batch", element: "#line-threads", width: 820, fit: true, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "batch-size-ipv4", element: "#line-batch", width: 820, fit: true, legend: true, optional: true, clicks: [["Family", "IPv4"], ["Entries", "1M", "last"]] },
-  { url: compare, out: "memory-ipv6", element: "#line-memory", width: 820, legend: true, clicks: [["Family", "IPv6"]] },
-  { url: compare, out: "report-full", fullPage: true, tile: 4000, clicks: [["Family", "IPv4"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
-  { url: lib, out: "lib-throughput-ipv4", element: "#line-throughput", legend: true, clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
-  { url: lib, out: "lib-throughput-ipv6", element: "#line-throughput", legend: true, clicks: [["Family", "IPv6"], ["Operation", "LPM lookup"]] },
-  { url: lib, out: "lib-candlestick-ipv4", element: "#candle-card", clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
+  { part: "structures", out: "candlestick-ipv4-lookup", element: "candle-card", clicks: [["Family", "IPv4"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "candlestick-ipv6-lookup", element: "candle-card", clicks: [["Family", "IPv6"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "throughput-ipv4-batch", element: "bars-card", clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "throughput-ipv6-batch", element: "bars-card", clicks: [["Family", "IPv6"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "scaling-ipv4-batch", element: "line-throughput", width: 820, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"]] },
+  { part: "structures", out: "threads-ipv4-batch", element: "line-threads", width: 820, fit: true, legend: true, clicks: [["Family", "IPv4"], ["Operation", "Batch (array)"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "batch-size-ipv4", element: "line-batch", width: 820, fit: true, legend: true, optional: true, clicks: [["Family", "IPv4"], ["Entries", "1M", "last"]] },
+  { part: "structures", out: "memory-ipv6", element: "line-memory", width: 820, legend: true, clicks: [["Family", "IPv6"]] },
+  { part: "structures", out: "report-full", fullPage: true, tile: 4000, clicks: [["Family", "IPv4"], ["Operation", "Lookup"], ["Entries", "1M", "last"]] },
+  { part: "libraries", out: "lib-throughput-ipv4", element: "line-throughput", legend: true, clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
+  { part: "libraries", out: "lib-throughput-ipv6", element: "line-throughput", legend: true, clicks: [["Family", "IPv6"], ["Operation", "LPM lookup"]] },
+  { part: "libraries", out: "lib-candlestick-ipv4", element: "candle-card", clicks: [["Family", "IPv4"], ["Operation", "LPM lookup"]] },
 ];
 const WIDTH = 1400;
 const DPR = 2;
@@ -108,8 +110,17 @@ async function connect(port) {
   return { ws, send, evaluate, events };
 }
 
-const clickJs = (group, text, fallback) => `(() => {
-  const g = [...document.querySelectorAll('.seg')].find((s) => s.getAttribute('aria-label') === ${JSON.stringify(group)});
+// Shows the tab of `part` (a no-op when it is already shown).
+const tabJs = (part) => `(() => {
+  const tab = document.getElementById(${JSON.stringify("tab-" + part)});
+  if (!tab) return 'no tab';
+  if (tab.getAttribute('aria-selected') !== 'true') tab.click();
+  return 'ok';
+})()`;
+
+const clickJs = (part, group, text, fallback) => `(() => {
+  const g = [...document.getElementById(${JSON.stringify(part)}).querySelectorAll('.seg')]
+    .find((s) => s.getAttribute('aria-label') === ${JSON.stringify(group)});
   if (!g) return 'no group';
   const buttons = [...g.querySelectorAll('button')];
   const b = buttons.find((x) => x.textContent.trim() === ${JSON.stringify(text)})
@@ -123,10 +134,10 @@ const clickJs = (group, text, fallback) => `(() => {
 // copied in first when asked, the height cropped to the children with fit.
 const boxJs = (shot) => `(() => {
   document.querySelectorAll('.charts-legend-copy').forEach((n) => n.remove());
-  const e = document.querySelector(${JSON.stringify(shot.element)});
+  const e = document.getElementById(${JSON.stringify(shot.part + "-" + shot.element)});
   if (!e || e.offsetParent === null || e.closest('[hidden]')) return null;
   if (${!!shot.legend}) {
-    const legend = document.querySelector('#legend');
+    const legend = document.getElementById(${JSON.stringify(shot.part + "-legend")});
     if (legend) {
       const copy = legend.cloneNode(true);
       copy.removeAttribute('id');
@@ -149,20 +160,22 @@ async function main() {
     const { ws, send, evaluate, events } = await connect(port);
     await send("Page.enable");
     await send("Runtime.enable");
-    let loaded = null;
+    let loaded = false;
     for (const shot of SHOTS) {
       await send("Emulation.setDeviceMetricsOverride", { width: shot.width || WIDTH, height: 1000, deviceScaleFactor: DPR, mobile: false });
-      if (loaded !== shot.url) {
+      if (!loaded) {
         events.length = 0;
-        await send("Page.navigate", { url: shot.url });
+        await send("Page.navigate", { url: report });
         for (let t = 0; t < 300 && !events.some((e) => e.method === "Page.loadEventFired"); t++) await sleep(50);
         await sleep(800);
-        loaded = shot.url;
+        loaded = true;
       }
+      const tab = await evaluate(tabJs(shot.part));
+      if (tab !== "ok") throw new Error(`${shot.out}: tab ${shot.part}: ${tab}`);
       await evaluate("window.dispatchEvent(new Event('resize'))");
       await sleep(400);
       for (const [group, text, fallback] of shot.clicks || []) {
-        const r = await evaluate(clickJs(group, text, fallback || ""));
+        const r = await evaluate(clickJs(shot.part, group, text, fallback || ""));
         if (r !== "ok") console.warn(`${shot.out}: filter ${group} / ${text}: ${r}`);
         await sleep(250);
       }
@@ -181,10 +194,10 @@ async function main() {
       const box = await evaluate(boxJs(shot));
       if (!box) {
         if (shot.optional) {
-          console.warn(`${shot.out}: ${shot.element} absent or hidden in this report, skipped`);
+          console.warn(`${shot.out}: ${shot.part}-${shot.element} absent or hidden in this report, skipped`);
           continue;
         }
-        throw new Error(`${shot.out}: ${shot.element} not found`);
+        throw new Error(`${shot.out}: ${shot.part}-${shot.element} not found`);
       }
       const pad = 8;
       const clip = { x: Math.max(0, box.x - pad), y: Math.max(0, box.y - pad), width: box.width + 2 * pad, height: box.height + 2 * pad, scale: 1 };

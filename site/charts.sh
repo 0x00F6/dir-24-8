@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Regenerates the benchmark images of README.md (benchmarks/charts/*.png)
-# from the HTML reports of `make bench-compare` and `make bench-compare-lib`:
+# from the two tabs of the HTML report of `make bench-compare`:
 # captures with headless Chrome (site/charts.mjs), then stitching and palette
 # compression (site/pack_png.py). The flame graph (make flamegraph) is not
 # touched. .github/workflows/pages.yml runs it for every version tag.
@@ -15,13 +15,11 @@ set -euo pipefail
 root=$(cd "$(dirname "$0")/.." && pwd)
 reports=${1:-$root/benchmarks/reports}
 out=${2:-$root/benchmarks/charts}
-for f in report.html bench-compare-lib.html; do
-  [[ -f $reports/$f ]] || { echo "charts: $reports/$f missing (run the benchmark first)" >&2; exit 1; }
-done
+[[ -f $reports/report.html ]] || { echo "charts: $reports/report.html missing (run make bench-compare first)" >&2; exit 1; }
 
 capture=$(mktemp -d)
 trap 'rm -rf "$capture"' EXIT
-node "$root/site/charts.mjs" "$reports/report.html" "$reports/bench-compare-lib.html" "$capture"
+node "$root/site/charts.mjs" "$reports/report.html" "$capture"
 python3 "$root/site/pack_png.py" "$capture" "$out"
 
 # README block `benchmark-charts`: every listed image this run produced.

@@ -1,5 +1,5 @@
-//! Aggregation of the runner records into the results document
-//! (`bench-compare-lib.json`), its CSV export and the HTML report.
+//! Aggregation of the runner records into the results document of the
+//! libraries part (`libraries.json`) and its CSV export.
 //!
 //! Every planned measurement yields one entry with a status (`ok`,
 //! `unsupported`, `skipped`, `failed`, `timeout`): a missing value stays
@@ -573,13 +573,25 @@ pub fn to_csv(doc: &Value) -> String {
     out
 }
 
+/// Result document of the libraries part, next to the report.
+pub const JSON: &str = "libraries.json";
+/// One row per measurement of the libraries part.
+pub const CSV: &str = "libraries.csv";
+
+/// Writes `libraries.json` and `libraries.csv`.
 pub fn write_all(out: &Path, doc: &Value) -> std::io::Result<Vec<PathBuf>> {
     std::fs::create_dir_all(out)?;
-    let json_path = out.join("bench-compare-lib.json");
-    let csv_path = out.join("bench-compare-lib.csv");
-    let html_path = out.join("bench-compare-lib.html");
-    std::fs::write(&json_path, serde_json::to_vec_pretty(doc)?)?;
+    let json_path = out.join(JSON);
+    let tmp = out.join(format!("{JSON}.tmp"));
+    std::fs::write(&tmp, serde_json::to_vec_pretty(doc)?)?;
+    std::fs::rename(&tmp, &json_path)?;
+    Ok(vec![json_path, write_csv(out, doc)?])
+}
+
+/// Writes `libraries.csv`.
+pub fn write_csv(out: &Path, doc: &Value) -> std::io::Result<PathBuf> {
+    std::fs::create_dir_all(out)?;
+    let csv_path = out.join(CSV);
     std::fs::write(&csv_path, to_csv(doc))?;
-    std::fs::write(&html_path, super::html::render(doc))?;
-    Ok(vec![html_path, json_path, csv_path])
+    Ok(csv_path)
 }

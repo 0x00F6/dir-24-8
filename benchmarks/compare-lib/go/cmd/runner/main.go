@@ -1,4 +1,4 @@
-// Command runner is the native Go runner of `make bench-compare-lib`: it
+// Command runner is the native Go runner of the libraries part of `make bench-compare`: it
 // builds one library's table from a corpus, validates it against the
 // oracle's expected results, then measures lookup throughput and sampled
 // latencies, and prints one JSON object per line (schema in

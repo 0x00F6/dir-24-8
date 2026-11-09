@@ -1,12 +1,11 @@
 # Benchmarks
 
-Three Makefile targets, every option is a variable:
+Two Makefile targets, every option is a variable:
 
 | Command | What it does |
 |---|---|
 | `make bench` | Criterion benchmarks of the library (`benches/lookup.rs`, `benches/update.rs`); `BENCHES=snapshot` runs the snapshot measurements (`benches/snapshot.rs`) |
-| `make bench-compare` | comparison with other structures, JSON/CSV results and a standalone HTML report in `benchmarks/reports/` |
-| `make bench-compare-lib` | IPv4/IPv6 lookups (membership, LPM) of dir-24-8 against seven Go, C and Rust libraries, each in a native runner: throughput, latency, memory per prefix ([compare-lib/README.md](compare-lib/README.md)) |
+| `make bench-compare` | two comparisons and one standalone HTML report with a tab each, `benchmarks/reports/report.html`: the **structures** part (below: dir-24-8 against Rust LPM and membership structures, `results.json`/`.csv`) and the **libraries** part (IPv4/IPv6 lookups, membership and LPM, of dir-24-8 against seven Go, C and Rust libraries, each in a native runner: throughput, latency, memory per prefix, `libraries.json`/`.csv`, [compare-lib/README.md](compare-lib/README.md)); `PARTS=structures` or `PARTS=libraries` runs one of them |
 
 ```bash
 make bench                                   # every Criterion group
@@ -15,21 +14,25 @@ make bench BENCHES=update                    # construction, insert/remove, merg
 make bench SIMD=0                            # built without batch-simd: scalar batches (default: the CPU's SIMD kernel)
 make bench BENCHES=snapshot                  # snapshots: size, save/load time, memory (SNAPSHOT_SIZES, SNAPSHOT_PROFILES, SNAPSHOT_REPS)
 
-make bench-compare                           # full matrix (see below)
+make bench-compare                           # both parts: full structures matrix (see below), standard library profile
+make bench-compare PARTS=structures          # the structures part only (the libraries tab keeps its results)
+make bench-compare PARTS=libraries LIB_PROFILE=smoke   # the libraries part only, see compare-lib/README.md
 make bench-compare SIZES=1k,100k FAMILIES=ipv4 THREADS=1,8
 make bench-compare ENGINES=all               # every registered structure
 make bench-compare ENGINES=default,patricia  # default selection + one more
 make bench-compare HIT_RATIO=90% BATCH=64,256 WINDOW_MS=20 REPS=7
 make bench-compare BATCH_SWEEP=8,64,512      # batch sizes of the SIMD-versus-scalar chart (none = off)
-make bench-compare REPORT_ONLY=1             # rebuild report.html/results.csv from results.json
-make bench-compare README=1                  # also rewrite the Detailed results block of README.md (auto: full runs)
+make bench-compare REPORT_ONLY=1             # rebuild report.html and the CSV files from results.json and libraries.json
+make bench-compare README=1                  # also rewrite the generated blocks of README.md (auto: full runs)
 ```
 
 `bench-compare --help` (binary `target/release/bench-compare`) lists every
-option; each one also has a `BENCH_*` environment variable.
+option; each one also has a `BENCH_*` environment variable (`BENCH_LIB_*`
+for the `LIB_*` options of the libraries part).
 
-Both suites share the data generator `benches/support/data.rs`: BGP-like
-route tables, an independent LPM oracle and the query distributions below.
+Criterion and the structures part share the data generator
+`benches/support/data.rs`: BGP-like route tables, an independent LPM
+oracle and the query distributions below.
 
 ## Snapshots (`benches/snapshot.rs`)
 
@@ -46,7 +49,7 @@ computed by liblzma, and resident memory on Linux, separating the table
 (`table`) from what each operation adds on top of it (`save +peak`,
 `load +peak`, compared with `build +peak` for an ordinary construction).
 
-## `bench-compare`
+## `bench-compare`, structures part
 
 ### Matrix
 
@@ -211,8 +214,9 @@ Measured in the process that builds the structure:
   keeps its partial results. Input of `REPORT_ONLY=1`.
 * `results.csv`: one row per measurement (and one per run without
   measurements, with its status).
-* `report.html`: standalone page (dark theme, no external resource) with
-  filters (family, operation, distribution, entries, threads, batch size,
+* `report.html`: standalone page (dark theme, no external resource), one
+  tab per part; `#structures` and `#libraries` open a tab. The structures
+  tab has filters (family, operation, distribution, entries, threads, batch size,
   axis scales, structures), candlestick percentile ranks (body p50-p95, left
   wick min-p50, right wick p95-p99 with a p99 marker, ranked by p99), the
   throughput ranking, line charts over the measured sizes (throughput, p50/p95/

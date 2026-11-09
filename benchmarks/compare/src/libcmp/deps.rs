@@ -1,7 +1,7 @@
-//! Dependency preparation of `bench-compare-lib`: the Go toolchain and
-//! modules (pinned by `go.mod` / `go.sum`, verified), the Go runner and
-//! MMDB writer, libmaxminddb (pinned release tarball, SHA-256 checked,
-//! static build) and the C runner. Everything is cached under
+//! Dependency preparation of the libraries part of `bench-compare`: the Go
+//! toolchain and modules (pinned by `go.mod` / `go.sum`, verified), the Go
+//! runner and MMDB writer, libmaxminddb (pinned release tarball, SHA-256
+//! checked, static build) and the C runner. Everything is cached under
 //! `<cache>/deps`; a failed step only disables the libraries that need it.
 
 use std::path::{Path, PathBuf};

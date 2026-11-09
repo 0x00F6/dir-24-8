@@ -1,7 +1,9 @@
-//! Profiles and options of `bench-compare-lib` (every option is a `BENCH_*`
-//! environment variable, forwarded by `make bench-compare-lib`).
+//! Profiles and options of the libraries part of `bench-compare`: the
+//! `LIB_*` variables of `make bench-compare` (environment `BENCH_LIB_*`,
+//! flags `--lib-*`, see [`KEYS`]), plus the families, thread counts, output
+//! directory and README mode shared with the structures part ([`Shared`]).
 
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use serde::Serialize;
 
@@ -41,8 +43,7 @@ pub struct Settings {
     pub goamd64: String,
     pub out: PathBuf,
     pub cache: PathBuf,
-    pub report_only: bool,
-    /// `BENCH_README`: `auto`, `1` or `0` (see [`super::readme::wanted`]).
+    /// `README`: `auto`, `1` or `0` (see [`super::readme::wanted`]).
     pub readme: String,
     /// The repository `README.md` whose summary block is regenerated.
     #[serde(skip)]
@@ -50,11 +51,37 @@ pub struct Settings {
     pub notes: Vec<String>,
 }
 
-fn var(k: &str) -> Option<String> {
-    std::env::var(k)
-        .ok()
-        .map(|v| v.trim().to_string())
-        .filter(|v| !v.is_empty())
+/// The options of this part, without prefix: Makefile variable `LIB_<KEY>`,
+/// environment variable `BENCH_LIB_<KEY>`, flag `--lib-<key>` (lower case,
+/// `-` for `_`).
+pub const KEYS: &[&str] = &[
+    "PROFILE",
+    "SIZES",
+    "REPETITIONS",
+    "SEED",
+    "QUERIES",
+    "TARGET_MS",
+    "LATENCY_SAMPLES",
+    "DETAIL_SIZES",
+    "LIBS",
+    "BUDGET",
+    "TIMEOUT",
+    "MEM_LIMIT_MIB",
+    "GOAMD64",
+    "CACHE",
+];
+
+/// Settings of `bench-compare` that apply to both parts.
+pub struct Shared<'a> {
+    pub families: &'a [Family],
+    /// Thread counts given explicitly (`THREADS`); `None` keeps the profile's.
+    pub threads: Option<&'a [usize]>,
+    pub out: &'a Path,
+    pub readme: &'a str,
+    pub readme_file: &'a Path,
+    /// `--lib-*` flags as `(BENCH_LIB_<KEY>, value)`: they override the
+    /// environment.
+    pub vars: &'a [(String, String)],
 }
 
 pub fn parse_size(s: &str) -> Result<usize, String> {
@@ -71,58 +98,42 @@ pub fn parse_size(s: &str) -> Result<usize, String> {
         .map_err(|_| format!("invalid size {s:?}"))
 }
 
-fn list<T>(k: &str, f: impl Fn(&str) -> Result<T, String>) -> Option<Vec<T>> {
-    var(k).map(|v| {
-        v.split(',')
-            .filter(|s| !s.trim().is_empty())
-            .map(|s| f(s).unwrap_or_else(|e| die(&format!("{k}: {e}"))))
-            .collect()
-    })
-}
-
-fn num<T: std::str::FromStr>(k: &str) -> Option<T> {
-    var(k).map(|v| {
-        v.parse()
-            .unwrap_or_else(|_| die(&format!("{k}: invalid value {v:?}")))
-    })
-}
-
 pub fn die(msg: &str) -> ! {
-    eprintln!("bench-compare-lib: {msg}");
+    eprintln!("bench-compare: {msg}");
     std::process::exit(2)
 }
 
-pub const USAGE: &str = "\
-bench-compare-lib: IPv4/IPv6 lookup comparison (1 to 8 threads) of dir-24-8 (scalar single
-lookups), prefix-trie, iprange (Rust),
-go-cidranger (libp2p), cidranger (yl2chen), go-iptrie, bart (Go) and libmaxminddb (C).
-Run through `make bench-compare-lib`; every option is an environment variable:
-
-  BENCH_PROFILE=smoke|standard|full   (default standard)
-  BENCH_SIZES=1000,10000,100000,1000000  input prefixes per table (k/M suffixes accepted)
-  BENCH_FAMILIES=ipv4,ipv6             BENCH_SEED=42
-  BENCH_REPETITIONS=2                  independent processes per (library, family, size)
-  BENCH_QUERIES=1048576                queries per scenario file (power of two)
-  BENCH_TARGET_MS=40                   duration of one throughput measurement
-  BENCH_LATENCY_SAMPLES=50000          individually timed lookups per latency measurement (p99.9 from 100000)
-  BENCH_DETAIL_SIZES=100000            sizes measured on every scenario (hits, misses, mixed, local)
-  BENCH_LIBS=<ids>                     subset of libraries (default: all)
-  BENCH_BUDGET=900                     measurement budget in seconds (0: none)
-  BENCH_TIMEOUT=300                    limit per runner process in seconds
-  BENCH_MEM_LIMIT_MIB=<n>              RSS limit per runner process (default: 80 % of MemAvailable)
-  BENCH_GOAMD64=v1                     GOAMD64 of the Go build (same for every Go library)
-  BENCH_OUT=benchmarks/reports         report directory
-  BENCH_CACHE=target/bench-compare-lib corpora, MMDB files, dependencies, raw runner outputs
-  BENCH_REPORT_ONLY=1                  rebuild the HTML/CSV from bench-compare-lib.json
-  BENCH_README=auto|1|0                refresh the summary block of README.md (auto: complete runs,
-                                       not the smoke profile; also with BENCH_REPORT_ONLY=1)
-  BENCH_THREADS=1,4,8                  worker threads of the throughput measurements (mixed scenario;
-                                       latency and memory stay single-thread)
-";
-
 impl Settings {
-    pub fn from_env(repo: &std::path::Path) -> Settings {
-        let profile = var("BENCH_PROFILE").unwrap_or_else(|| "standard".into());
+    /// The settings of a run: the `LIB_*` options over the profile's
+    /// defaults, and the shared ones.
+    pub fn new(repo: &Path, sh: &Shared) -> Settings {
+        // `LIB_<KEY>` option: flag, else environment; empty means unset.
+        let var = |k: &str| -> Option<String> {
+            let name = format!("BENCH_LIB_{k}");
+            sh.vars
+                .iter()
+                .rev()
+                .find(|(n, _)| *n == name)
+                .map(|(_, v)| v.clone())
+                .or_else(|| std::env::var(&name).ok())
+                .map(|v| v.trim().to_string())
+                .filter(|v| !v.is_empty())
+        };
+        let list = |k: &str, f: &dyn Fn(&str) -> Result<usize, String>| -> Option<Vec<usize>> {
+            var(k).map(|v| {
+                v.split(',')
+                    .filter(|s| !s.trim().is_empty())
+                    .map(|s| f(s).unwrap_or_else(|e| die(&format!("LIB_{k}: {e}"))))
+                    .collect()
+            })
+        };
+        fn num<T: std::str::FromStr>(k: &str, v: Option<String>) -> Option<T> {
+            v.map(|v| {
+                v.parse()
+                    .unwrap_or_else(|_| die(&format!("LIB_{k}: invalid value {v:?}")))
+            })
+        }
+        let profile = var("PROFILE").unwrap_or_else(|| "standard".into());
         let mut s = match profile.as_str() {
             "smoke" => Settings {
                 profile: profile.clone(),
@@ -146,9 +157,8 @@ impl Settings {
                 goamd64: "v1".into(),
                 out: repo.join("benchmarks/reports"),
                 cache: repo.join("target/bench-compare-lib"),
-                report_only: false,
-                readme: "auto".into(),
-                readme_file: repo.join("README.md"),
+                readme: sh.readme.to_string(),
+                readme_file: sh.readme_file.to_path_buf(),
                 notes: Vec::new(),
             },
             "standard" => Settings {
@@ -173,9 +183,8 @@ impl Settings {
                 goamd64: "v1".into(),
                 out: repo.join("benchmarks/reports"),
                 cache: repo.join("target/bench-compare-lib"),
-                report_only: false,
-                readme: "auto".into(),
-                readme_file: repo.join("README.md"),
+                readme: sh.readme.to_string(),
+                readme_file: sh.readme_file.to_path_buf(),
                 notes: Vec::new(),
             },
             "full" => Settings {
@@ -203,78 +212,65 @@ impl Settings {
                 goamd64: "v1".into(),
                 out: repo.join("benchmarks/reports"),
                 cache: repo.join("target/bench-compare-lib"),
-                report_only: false,
-                readme: "auto".into(),
-                readme_file: repo.join("README.md"),
+                readme: sh.readme.to_string(),
+                readme_file: sh.readme_file.to_path_buf(),
                 notes: Vec::new(),
             },
             p => die(&format!(
-                "unknown BENCH_PROFILE {p:?} (smoke, standard, full)"
+                "unknown LIB_PROFILE {p:?} (smoke, standard, full)"
             )),
         };
-        if let Some(v) = list("BENCH_SIZES", parse_size) {
+        if let Some(v) = list("SIZES", &parse_size) {
             s.sizes = v;
         }
         s.sizes.sort_unstable();
         s.sizes.dedup();
-        if let Some(v) = list("BENCH_FAMILIES", |f| {
-            Family::parse(f.trim()).ok_or(format!("unknown family {f:?}"))
-        }) {
-            s.families = v;
-        }
-        if let Some(v) = num("BENCH_SEED") {
+        s.families = sh.families.to_vec();
+        if let Some(v) = num("SEED", var("SEED")) {
             s.seed = v;
         }
-        if let Some(v) = num::<usize>("BENCH_REPETITIONS") {
+        if let Some(v) = num::<usize>("REPETITIONS", var("REPETITIONS")) {
             s.repetitions = v.max(1);
         }
-        if let Some(v) = num::<usize>("BENCH_QUERIES") {
+        if let Some(v) = num::<usize>("QUERIES", var("QUERIES")) {
             if !v.is_power_of_two() || v < 1024 {
-                die("BENCH_QUERIES must be a power of two >= 1024");
+                die("LIB_QUERIES must be a power of two >= 1024");
             }
             s.queries = v;
         }
-        if let Some(v) = num("BENCH_TARGET_MS") {
+        if let Some(v) = num("TARGET_MS", var("TARGET_MS")) {
             s.target_ms = v;
         }
-        if let Some(v) = num::<usize>("BENCH_LATENCY_SAMPLES") {
+        if let Some(v) = num::<usize>("LATENCY_SAMPLES", var("LATENCY_SAMPLES")) {
             s.latency_samples = v.max(100);
         }
-        if let Some(v) = list("BENCH_DETAIL_SIZES", parse_size) {
+        if let Some(v) = list("DETAIL_SIZES", &parse_size) {
             s.detail_sizes = v;
         }
-        if let Some(v) = num("BENCH_BUDGET") {
+        if let Some(v) = num("BUDGET", var("BUDGET")) {
             s.budget_s = v;
         }
-        if let Some(v) = num("BENCH_TIMEOUT") {
+        if let Some(v) = num("TIMEOUT", var("TIMEOUT")) {
             s.timeout_s = v;
         }
-        s.mem_limit_mib = num("BENCH_MEM_LIMIT_MIB").or(s.mem_limit_mib);
-        if let Some(v) = list("BENCH_LIBS", |l| Ok(l.trim().to_string())) {
-            s.libs = v;
+        s.mem_limit_mib = num("MEM_LIMIT_MIB", var("MEM_LIMIT_MIB")).or(s.mem_limit_mib);
+        if let Some(v) = var("LIBS") {
+            s.libs = v
+                .split(',')
+                .map(str::trim)
+                .filter(|l| !l.is_empty())
+                .map(String::from)
+                .collect();
         }
-        if let Some(v) = var("BENCH_GOAMD64") {
+        if let Some(v) = var("GOAMD64") {
             s.goamd64 = v;
         }
-        if let Some(v) = var("BENCH_OUT") {
-            s.out = repo.join(v);
-        }
-        if let Some(v) = var("BENCH_CACHE") {
+        s.out = sh.out.to_path_buf();
+        if let Some(v) = var("CACHE") {
             s.cache = repo.join(v);
         }
-        s.report_only = var("BENCH_REPORT_ONLY").is_some_and(|v| v != "0");
-        if let Some(v) = var("BENCH_README") {
-            if !matches!(v.as_str(), "auto" | "1" | "0") {
-                die(&format!("BENCH_README must be auto, 1 or 0, not {v:?}"));
-            }
-            s.readme = v;
-        }
-        if let Some(v) = list("BENCH_THREADS", |t| {
-            t.trim()
-                .parse::<usize>()
-                .map_err(|_| format!("invalid thread count {t:?}"))
-        }) {
-            s.threads = v;
+        if let Some(t) = sh.threads {
+            s.threads = t.to_vec();
         }
         s.threads.push(1);
         s.threads.retain(|&t| t >= 1);

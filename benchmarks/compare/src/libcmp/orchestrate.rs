@@ -1,4 +1,4 @@
-//! Orchestration of `bench-compare-lib`: dependencies, corpora, MMDB files,
+//! Orchestration of the libraries part: dependencies, corpora, MMDB files,
 //! then one fresh runner process per (library, family, size, repetition),
 //! repetitions in rounds with a rotating library order. Each process is
 //! watched (timeout, resident memory); its JSON lines are kept verbatim in
@@ -233,7 +233,7 @@ fn plan_text(
     edge: bool,
 ) -> (String, Vec<Planned>) {
     let mut t = format!(
-        "# bench-compare-lib plan\nlib {}\ncorpus {}\n",
+        "# bench-compare libraries plan\nlib {}\ncorpus {}\n",
         lib.id,
         corpus.dir.display()
     );
@@ -478,10 +478,13 @@ fn skipped(lib: &'static LibDef, c: &CorpusInfo, rep: usize, s: &Settings, reaso
 }
 
 fn progress(msg: &str) {
-    eprintln!("[bench-compare-lib] {msg}");
+    eprintln!("[libraries] {msg}");
 }
 
-pub fn run(s: Settings) {
+/// Measures the libraries part and writes `libraries.json` and
+/// `libraries.csv` (the report page is written by the caller); returns the
+/// result document.
+pub fn run(s: Settings) -> Value {
     let repo = repo_root();
     let started = Instant::now();
     let started_unix = std::time::SystemTime::now()
@@ -497,7 +500,7 @@ pub fn run(s: Settings) {
         .filter(|l| s.libs.is_empty() || s.libs.iter().any(|x| x == l.id))
         .collect();
     if selected.is_empty() {
-        super::settings::die("BENCH_LIBS selects no library");
+        super::settings::die("LIB_LIBS selects no library");
     }
 
     // Dependencies.
@@ -739,15 +742,16 @@ pub fn run(s: Settings) {
         progress(&format!("wrote {}", f.display()));
     }
     refresh_readme(&s, &doc);
+    doc
 }
 
-/// Regenerates the summary block of `README.md` when `BENCH_README` allows
-/// it; a failure is reported but does not fail the run.
+/// Regenerates the summary block of `README.md` when `README` allows it; a
+/// failure is reported but does not fail the run.
 fn refresh_readme(s: &Settings, doc: &Value) {
     let path = &s.readme_file;
     if !super::readme::wanted(&s.readme, doc) {
         progress(&format!(
-            "{} not updated (BENCH_README={}, profile {}, status {})",
+            "{} not updated (README={}, profile {}, status {})",
             path.display(),
             s.readme,
             doc["meta"]["profile"].as_str().unwrap_or("?"),
@@ -762,20 +766,12 @@ fn refresh_readme(s: &Settings, doc: &Value) {
     }
 }
 
-/// `BENCH_REPORT_ONLY=1`: rebuild the HTML and CSV from the JSON results.
-pub fn report_only(s: &Settings) {
-    let path = s.out.join("bench-compare-lib.json");
-    let doc: Value = std::fs::read(&path)
-        .ok()
-        .and_then(|b| serde_json::from_slice(&b).ok())
-        .unwrap_or_else(|| super::settings::die(&format!("cannot read {}", path.display())));
-    match results::write_all(&s.out, &doc) {
-        Ok(files) => {
-            for f in files {
-                progress(&format!("wrote {}", f.display()));
-            }
-        }
-        Err(e) => super::settings::die(&format!("cannot write the report: {e}")),
+/// `REPORT_ONLY=1`: rebuilds `libraries.csv` from the result document read
+/// from `libraries.json` and refreshes the README summary.
+pub fn report_only(s: &Settings, doc: &Value) {
+    match results::write_csv(&s.out, doc) {
+        Ok(f) => progress(&format!("wrote {}", f.display())),
+        Err(e) => super::settings::die(&format!("cannot write the CSV: {e}")),
     }
-    refresh_readme(s, &doc);
+    refresh_readme(s, doc);
 }
